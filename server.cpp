@@ -122,12 +122,17 @@ const std::string Server::parser(const std::string &rqst)
 
 }
 
+
+
 void Server::process_request(const std::string &filename)
 {
-
-    printf("%s\n", "workinig");
+    std::cout << filename;
+    // find extension to build header
+    std::string Content_Type = get_contentType(filename);
+    // printf("%s\n",Content_Type.c_str() );
 
     //暂且复制的
+
 
     std::ifstream inFile;
     inFile.open(filename, std::ifstream::in | std::ios::binary);
@@ -141,8 +146,7 @@ void Server::process_request(const std::string &filename)
     while(inFile.get(c)) {
         response.push_back(c);
     }
-    // find extension to build header
-    std::string Content_Type = get_contentType(filename);
+    
 
     // send back
     if(inFile.eof()) {
@@ -163,7 +167,7 @@ void Server::process_request(const std::string &filename)
 }
 const std::string Server::get_contentType(const std::string &filename){
 
-    std::size_t idx_dot = filename.find(".");
+    std::size_t idx_dot = filename.find_last_of(".");
     std::string extension;
     // find the pos of extension
     if (idx_dot== std::string::npos){
@@ -174,7 +178,7 @@ const std::string Server::get_contentType(const std::string &filename){
     }
 
     std::string Content_Type;
-    
+
     // define different content type header base on file extension
     if ( (strcasecmp(extension.c_str(), "html") == 0)){
         Content_Type = "Content-Type: text/html\n\n";
@@ -185,6 +189,10 @@ const std::string Server::get_contentType(const std::string &filename){
     }else{
         Content_Type = "Content-Type: application/octet-stream\n\n";
     }
+
+    printf("%s\n",extension.c_str());
+    printf("%d\n", extension.compare("html"));
+    printf("%s\n", Content_Type.c_str());
 
     return Content_Type;
 
