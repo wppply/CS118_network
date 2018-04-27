@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <signal.h>
 #include <regex>
 #include <iterator>
@@ -89,14 +90,6 @@ void Server::server_listen()
         {
             error("ERROR reading from socket");
         }
-        // printf("%s\n", buffer);
-
-        //process the client request message
-
-
-        // longest file path 4kb
-        // char filename[4096];
-        // memset(filename, 0, 4096);
 
         std::string filename = parser(buffer);
         printf("%s\n", filename.c_str());
@@ -130,9 +123,11 @@ const std::string Server::parser(const std::string &rqst)
 
 void Server::process_request(const std::string &filename)
 {
-
+    
+    printf("%s\n", "workinig");
 
     //暂且复制的
+
     std::ifstream inFile;
     inFile.open(filename, std::ifstream::in | std::ios::binary);
     if(!inFile) {
@@ -140,38 +135,67 @@ void Server::process_request(const std::string &filename)
         return;
     }
     char c;
+
     std::string response; 
     while(inFile.get(c)) {
         response.push_back(c);
     }
     // find extension to build header
 
+    std::size_t idx_dot = filename.find(".");
+    std::string extension;
+
+    
+
+    if (idx_dot== std::string::npos)
+    {
+        extension = "";
+    }
+    else
+    {
+        extension = filename.substr(idx_dot + 1);
+    }
+
+
+
+    std::string Content_Type;
+
+    if ( (strcasecmp(extension.c_str(), "html") == 0)){
+        Content_Type = "Content-Type: text/html\n\n";
+    }else if( (strcasecmp(extension.c_str(), "jpg") == 0) || (strcasecmp(extension.c_str(), "jpeg") == 0)){
+        Content_Type = "Content-Type: image/jpeg\n\n";
+    }else if( (strcasecmp(extension.c_str(), "gif") == 0)){
+        Content_Type = "Content-Type: image/gif\n\n";
+    }else{
+        Content_Type = "Content-Type: application/octet-stream\n\n";
+    }
+
 
     // send back
     if(inFile.eof()) {
         write(newsockfd, "HTTP/1.1 200 OK\n", 16);
         write(newsockfd, "Content-Length: 13\n", 19);
-        write(newsockfd, "Content-Type: text/html\n\n", 25);
+        write(newsockfd, Content_Type.c_str(), Content_Type.size());
         write(newsockfd, "<h1>Good 200</h1>", 24);
-
-        send(newsockfd, response.c_str(), response.size(), 0);
+        write(newsockfd, response.c_str(), response.size());
         return;
+
     } else {
         send_404();
         return;
     }
+
+
 
 }
 
 void Server::send_404() {
     //construct the 404 header
     write(newsockfd, "HTTP/1.1 404 Not Found\n", 14);
-    
     write(newsockfd, "Content-Length: 13\n", 19);
     write(newsockfd, "Content-Type: text/html\n\n", 25);
-    write(newsockfd, "<h1>404 Not Found</h1>", 24);
+    write(newsockfd, "<h1>404 Not Found</h1>", 23);
     close(newsockfd);
-    
 }
 
 Server* server = NULL;
