@@ -27,6 +27,7 @@ class Server
         void error(const char *msg);
         void process_request(const std::string &filename);
         const std::string parser(const std::string &rqst);
+        const std::string get_contentType(const std::string &filename);
         void send_404();
 
 };
@@ -123,7 +124,7 @@ const std::string Server::parser(const std::string &rqst)
 
 void Server::process_request(const std::string &filename)
 {
-    
+
     printf("%s\n", "workinig");
 
     //暂且复制的
@@ -141,35 +142,7 @@ void Server::process_request(const std::string &filename)
         response.push_back(c);
     }
     // find extension to build header
-
-    std::size_t idx_dot = filename.find(".");
-    std::string extension;
-
-    
-
-    if (idx_dot== std::string::npos)
-    {
-        extension = "";
-    }
-    else
-    {
-        extension = filename.substr(idx_dot + 1);
-    }
-
-
-
-    std::string Content_Type;
-
-    if ( (strcasecmp(extension.c_str(), "html") == 0)){
-        Content_Type = "Content-Type: text/html\n\n";
-    }else if( (strcasecmp(extension.c_str(), "jpg") == 0) || (strcasecmp(extension.c_str(), "jpeg") == 0)){
-        Content_Type = "Content-Type: image/jpeg\n\n";
-    }else if( (strcasecmp(extension.c_str(), "gif") == 0)){
-        Content_Type = "Content-Type: image/gif\n\n";
-    }else{
-        Content_Type = "Content-Type: application/octet-stream\n\n";
-    }
-
+    std::string Content_Type = get_contentType(filename);
 
     // send back
     if(inFile.eof()) {
@@ -188,6 +161,35 @@ void Server::process_request(const std::string &filename)
 
 
 }
+const std::string Server::get_contentType(const std::string &filename){
+
+    std::size_t idx_dot = filename.find(".");
+    std::string extension;
+    // find the pos of extension
+    if (idx_dot== std::string::npos){
+        extension = "";
+    }
+    else{
+        extension = filename.substr(idx_dot + 1);
+    }
+
+    std::string Content_Type;
+    
+    // define different content type header base on file extension
+    if ( (strcasecmp(extension.c_str(), "html") == 0)){
+        Content_Type = "Content-Type: text/html\n\n";
+    }else if( (strcasecmp(extension.c_str(), "jpg") == 0) || (strcasecmp(extension.c_str(), "jpeg") == 0)){
+        Content_Type = "Content-Type: image/jpeg\n\n";
+    }else if( (strcasecmp(extension.c_str(), "gif") == 0)){
+        Content_Type = "Content-Type: image/gif\n\n";
+    }else{
+        Content_Type = "Content-Type: application/octet-stream\n\n";
+    }
+
+    return Content_Type;
+
+}
+
 
 void Server::send_404() {
     //construct the 404 header
