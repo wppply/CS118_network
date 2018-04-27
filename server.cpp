@@ -6,6 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <regex>
+#include <iterator>
+#include <iostream>
+#include <fstream>
+
 
 class Server
 {
@@ -19,7 +24,9 @@ class Server
         socklen_t clilen;
         struct sockaddr_in serv_addr, cli_addr;
         void error(const char *msg);
-        void process_request(char *rqst);
+        void process_request(const std::string &filename);
+        const std::string parser(const std::string &rqst);
+        void send_404();
 
 };
 
@@ -82,17 +89,90 @@ void Server::server_listen()
         {
             error("ERROR reading from socket");
         }
+        // printf("%s\n", buffer);
+
         //process the client request message
-        printf("%s\n", buffer);
-        process_request(buffer);
+
+
+        // longest file path 4kb
+        // char filename[4096];
+        // memset(filename, 0, 4096);
+
+        std::string filename = parser(buffer);
+        printf("%s\n", filename.c_str());
+
+
+        process_request(filename);
         // close connection
         close(newsockfd); 
     }
     close(sockfd);
 }
 
-void Server::process_request(char *rqst)
-{}
+const std::string Server::parser(const std::string &rqst)
+{
+    std::size_t idx_low = rqst.find("/");
+    std::size_t idx_high = rqst.find("HTTP/1.1");
+
+    std::string filename = rqst.substr(idx_low+1, idx_high-5);
+    // replace all %20 with " "
+
+    std::size_t idx_space = filename.find("%20");
+    while(idx_space != std::string::npos)
+    {
+        // 3 is the length of %20
+        filename.replace(idx_space,3," ");
+        idx_space = filename.find("%20");
+    }
+    return filename;
+
+}
+
+void Server::process_request(const std::string &filename)
+{
+
+
+    //暂且复制的
+    std::ifstream inFile;
+    inFile.open(filename, std::ifstream::in | std::ios::binary);
+    if(!inFile) {
+        send_404();
+        return;
+    }
+    char c;
+    std::string response; 
+    while(inFile.get(c)) {
+        response.push_back(c);
+    }
+    // find extension to build header
+
+
+    // send back
+    if(inFile.eof()) {
+        write(newsockfd, "HTTP/1.1 200 OK\n", 16);
+        write(newsockfd, "Content-Length: 13\n", 19);
+        write(newsockfd, "Content-Type: text/html\n\n", 25);
+        write(newsockfd, "<h1>Good 200</h1>", 24);
+
+        send(newsockfd, response.c_str(), response.size(), 0);
+        return;
+    } else {
+        send_404();
+        return;
+    }
+
+}
+
+void Server::send_404() {
+    //construct the 404 header
+    write(newsockfd, "HTTP/1.1 404 Not Found\n", 14);
+    
+    write(newsockfd, "Content-Length: 13\n", 19);
+    write(newsockfd, "Content-Type: text/html\n\n", 25);
+    write(newsockfd, "<h1>404 Not Found</h1>", 24);
+    close(newsockfd);
+    
+}
 
 Server* server = NULL;
 
@@ -120,6 +200,8 @@ int main(int argc, char** argv)
     server = new Server(portno);
     server->create_socket();
     server->server_listen();
+
+
     delete server;
     return 0;
 }
