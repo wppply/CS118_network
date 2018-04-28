@@ -1,0 +1,22 @@
+Readme
+----
+Shuhao Sun:304653090
+Shuangyu Li:805035359
+
+file description
+----
+makefile: compile
+server.cpp : including all the code 
+	
+methods:
+-----	
+	-send_404: send 404 page
+	-convert_to_lowercase : change str to lower case
+	-server_listen: listen and connect to client 
+	-parser: return the filename from HTTP request
+	-get_content_Type:return the file extension
+	-process_request: send back the request files
+
+
+
+
