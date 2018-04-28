@@ -106,9 +106,10 @@ void Server::server_listen()
 const std::string Server::parser(const std::string &rqst)
 {
     std::size_t idx_low = rqst.find("/");
+    // std::cout << rqst;
     std::size_t idx_high = rqst.find("HTTP/1.1");
 
-    std::string filename = rqst.substr(idx_low+1, idx_high-5);
+    std::string filename = rqst.substr(idx_low+1, idx_high-idx_low-2);
     // replace all %20 with " "
 
     std::size_t idx_space = filename.find("%20");
@@ -126,16 +127,13 @@ const std::string Server::parser(const std::string &rqst)
 
 void Server::process_request(const std::string &filename)
 {
-    std::cout << filename;
+    
     // find extension to build header
     std::string Content_Type = get_contentType(filename);
-    // printf("%s\n",Content_Type.c_str() );
 
-    //暂且复制的
-
-
+    // file stream
     std::ifstream inFile;
-    inFile.open(filename, std::ifstream::in | std::ios::binary);
+    inFile.open("./"+filename, std::ifstream::in | std::ios::binary);
     if(!inFile) {
         send_404();
         return;
@@ -146,15 +144,24 @@ void Server::process_request(const std::string &filename)
     while(inFile.get(c)) {
         response.push_back(c);
     }
+
     
 
     // send back
     if(inFile.eof()) {
-        write(newsockfd, "HTTP/1.1 200 OK\n", 16);
-        write(newsockfd, "Content-Length: 13\n", 19);
-        write(newsockfd, Content_Type.c_str(), Content_Type.size());
-        write(newsockfd, "<h1>Good 200</h1>", 24);
+        std::string response_header = "HTTP/1.1 200 OK\n";
+
+        response_header+=Content_Type; //file_type_respnose, application/octet-stream for random stuff
+        response_header+="\n";
+        response_header+="Content-Length: ";
+        response_header+=std::to_string(response.size());
+        response_header+="\n";
+        response_header+="\n";
+
+        write(newsockfd, response_header.c_str(), response_header.size());
         write(newsockfd, response.c_str(), response.size());
+        return;
+
         return;
 
     } else {
@@ -190,10 +197,7 @@ const std::string Server::get_contentType(const std::string &filename){
         Content_Type = "Content-Type: application/octet-stream\n\n";
     }
 
-    printf("%s\n",extension.c_str());
-    printf("%d\n", extension.compare("html"));
-    printf("%s\n", Content_Type.c_str());
-
+    // printf("%s\n",Content_Type.c_str());
     return Content_Type;
 
 }
