@@ -1,0 +1,36 @@
+Initial Design:
+
+Steps: 
+
+1. rdt 1.0 CLIENT: 
+	- create+bind socket
+	- handshake
+	- request packet with [header]
+	- Send
+	- - receive and parse to data
+	- fin
+
+   rdt 1.0 Server:
+    - create+bind socket
+    - listen for handshake
+    - listen for more request
+    - parse [header]
+    - make packet with [header]
+    - send
+    - listen for fin 
+
+
+Own designed header
+
+
+Special requirements:
+1. Call like ./server [hostname] [port]. | ./client [filename]
+2. print messages when the server or the client is sending or receiving packets.
+3. max packet size = 1024 b including header 
+4. max window size = 5120 b
+   max seq # = 30kb
+
+
+
+5. time_out retrans; waiting time = 500ms
+6. 2*RTO time for fin
