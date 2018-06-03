@@ -1,8 +1,6 @@
 typedef struct pkt_t pkt_t;
+#define MAX_DATASIZE 1024
 
-int rdt_send (char* data);
-pkt_t *make_pkt(char *data);
-int udt_send (pkt_t *packet);
+void make_pkt(pkt_t *packet,PACKET_TYPE type, int seqNum, int size, char *data);
 
-int rdt_rcv (pkt_t *packet);
-char *extract_pkt(pkt_t *packet);
+
