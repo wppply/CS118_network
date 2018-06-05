@@ -1,21 +1,24 @@
 #include "tcp.h"
 
 
-typedef enum {REQ, ACK, DATA, FIN} PACKET_TYPE;
-
 struct pkt_t
 {
-	PACKET_TYPE type;
-	int seqNum;
-	int dataSize;
+	bool SYN;
+	bool ACK;
+	bool FIN;
+	int seq_num;
+	int ack_num;
+	int data_size;
 	char data[MAX_DATASIZE];
 };
 
-void make_pkt(pkt_t *packet,PACKET_TYPE type, int seqNum, int size, char *data)
+void make_pkt(pkt_t *packet, bool SYN, bool ACK, bool FIN, int seq_num, int size, char *data)
 {
-	packet->type = type;
-	packet->seqNum = seqNum;
-	packet->dataSize = size;
+	packet->SYN = SYN;
+	packet->ACK = ACK;
+	packet->FIN = FIN;
+	packet->seq_num = seq_num;
+	packet->data_size = size;
 	bcopy(data, packet->data, size);
 }
 

@@ -23,7 +23,7 @@ class Client
         int hand_shake();
         int request_file(char *file_name);
     private:
-        int sockfd, newsockfd, portno;
+        int sockfd, portno, cli_seq_num, serv_seq_num;
         char *hostname;
         struct sockaddr_in serv_addr;
 
@@ -33,6 +33,7 @@ Client::Client(char *host_name, int port_number)
 {
 	hostname = host_name;
 	portno = port_number;
+	cli_seq_num = 0;
 
 }
 
@@ -59,7 +60,8 @@ void Client::create_and_connect_socket()
 
 int Client::hand_shake()
 {
-
+	pkt_t start_con;
+	make_pkt(start_con, );
 }
 
 
@@ -79,7 +81,7 @@ int main(int argc, char** argv)
     client.hand_shake();
     while(1)
     {
-    	
+
     }
 
 }
