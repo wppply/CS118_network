@@ -3,4 +3,5 @@ typedef struct pkt_t pkt_t;
 
 void make_pkt(pkt_t *packet, bool SYN, bool ACK, bool FIN, int seq_num, int size, char *data);
 
+void buffer2pkt(struct pkt_t *pkt,  char *buffer);
 
