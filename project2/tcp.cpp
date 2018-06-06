@@ -1,5 +1,10 @@
 #include "tcp.h"
 
+void error(char *msg)
+{
+    perror(msg);
+    exit(1);
+}
 
 struct pkt_t
 {

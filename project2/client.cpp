@@ -8,11 +8,6 @@
 #include <unistd.h>
 #include "tcp.h"
 
-void error(char *msg)
-{
-    perror(msg);
-    exit(0);
-}
 
 class Client
 {
@@ -63,10 +58,15 @@ void Client::create_socket()
 
 int Client::hand_shake()
 {
+    //send SYN=1 special message
 	pkt_t start_con;
 	make_pkt(&start_con, true, false, false, cli_seq_num, 0, NULL);
-    sendto(sockfd, &start_con, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+    int sendlen = sendto(sockfd, &start_con, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+    if (sendlen == -1)
+        error("Error: fail to send package");
 
+    pkt_t rcv_con;
+    recvfrom(sockfd, );
 }
 
 
