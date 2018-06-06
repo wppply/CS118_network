@@ -21,10 +21,10 @@ class Server
 	public:
 		Server(char *host_name, int port_number);
 		~Server();
-		hand_shake();
-		void
+		void hand_shake();
 	private:
-		int sockfd, newsockfd, portno, cli_seq_num, serv_seq_num;
+		int sockfd, newsockfd, portno
+		unsigned long cli_seq_num, serv_seq_num;
 		socklen_t clilen;
 		char *hostname;
 		struct sockaddr_in serv_addr, cli_addr;

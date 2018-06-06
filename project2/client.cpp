@@ -23,7 +23,8 @@ class Client
         int hand_shake();
         int request_file(char *file_name);
     private:
-        int sockfd, portno, cli_seq_num, serv_seq_num;
+        int sockfd, portno
+        unsigned long cli_seq_num, serv_seq_num;
         char *hostname;
         struct hostent *server;
         struct sockaddr_in serv_addr;
@@ -65,7 +66,7 @@ int Client::hand_shake()
 	pkt_t start_con;
 	make_pkt(&start_con, true, false, false, cli_seq_num, 0, NULL);
     sendto(sockfd, &start_con, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
-    
+
 }
 
 
