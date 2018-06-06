@@ -46,7 +46,7 @@ void Server::setup_server()
 		exit(1);
 	}
 	
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);  // create socket
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);  // create socket
 	if (sockfd < 0)
         error("ERROR opening socket");
 
