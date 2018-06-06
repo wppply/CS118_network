@@ -26,7 +26,7 @@ static unsigned long cal_check_sum(unsigned char *str, int size)
         return hash;
     }
 
-void make_pkt (pkt_t *packet, bool SYN, bool ACK, bool FIN, int seq_num, int size, char *data)
+void make_pkt (pkt_t *packet, bool SYN, bool ACK, bool FIN, int seq_num, int ack_num, int size, char *data)
 {
     packet->SYN = SYN;
     packet->ACK = ACK;

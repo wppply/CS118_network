@@ -1,0 +1,17 @@
+For rdt 1.0
+
+client part:
+1. header design in tcp.cpp
+2. handshake: update seq_nums and establish connection.
+	use bookpage 254 tcp handshake design, and the third message doesn't carry data for simplicity
+
+server part:
+
+
+
+
+
+
+=======================================================
+Difficulty:
+1. different usage of socket for udp instead of tcp.

@@ -60,13 +60,26 @@ int Client::hand_shake()
 {
     //send SYN=1 special message
 	pkt_t start_con;
-	make_pkt(&start_con, true, false, false, cli_seq_num, 0, NULL);
+	make_pkt(&start_con, true, false, false, cli_seq_num, 0, 0, NULL);
     int sendlen = sendto(sockfd, &start_con, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
     if (sendlen == -1)
         error("Error: fail to send package");
-
-    pkt_t rcv_con;
-    recvfrom(sockfd, );
+    //receive SYNACK message from server
+    pkt_t recv_con;
+    socklen_t len;
+    int recvlen = recvfrom(sockfd, &recv_con, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, &len);
+    if (recvlen == -1)
+        error("Error: fail to receive package");
+    serv_seq_num = recv_con.seq_num+1;
+    cli_seq_num = recv_con.ack_num;
+    //establish connection
+    pkt_t estab_con;
+    make_pkt(&start_con, false, true, false, cli_seq_num, serv_seq_num, 0, NULL);
+    sendlen = sendto(sockfd, &estab_con, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+    if (sendlen == -1)
+        error("Error: fail to send package");
+    //establishment successful
+    return 1;
 }
 
 
