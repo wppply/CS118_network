@@ -19,14 +19,14 @@ class Client
     public:
         Client(char *host_name, int port_number);
         ~Client();
-        void create_and_connect_socket();
+        void create_socket();
         int hand_shake();
         int request_file(char *file_name);
     private:
         int sockfd, portno, cli_seq_num, serv_seq_num;
         char *hostname;
+        struct hostent *server;
         struct sockaddr_in serv_addr;
-
 };
 
 Client::Client(char *host_name, int port_number)
@@ -34,10 +34,11 @@ Client::Client(char *host_name, int port_number)
 	hostname = host_name;
 	portno = port_number;
 	cli_seq_num = 0;
+    server = NULL;
 
 }
 
-void Client::create_and_connect_socket()
+void Client::create_socket()
 {
 	//create client side socket
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0); 
@@ -52,16 +53,19 @@ void Client::create_and_connect_socket()
     serv_addr.sin_family = AF_INET;
     bcopy((char *)server->h_addr, (char *) &serv_addr.sin_addr.s_addr, server->h_length);
     serv_addr.sin_port = htons(portno);
-
+    /*
     //establish a connection to the server
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
         error("ERROR connecting");
+    */
 }
 
 int Client::hand_shake()
 {
 	pkt_t start_con;
-	make_pkt(start_con, );
+	make_pkt(&start_con, true, false, false, cli_seq_num, 0, NULL);
+    sendto(sockfd, &start_con, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+    
 }
 
 

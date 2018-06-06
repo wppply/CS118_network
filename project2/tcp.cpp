@@ -19,7 +19,8 @@ void make_pkt(pkt_t *packet, bool SYN, bool ACK, bool FIN, int seq_num, int size
 	packet->FIN = FIN;
 	packet->seq_num = seq_num;
 	packet->data_size = size;
-	bcopy(data, packet->data, size);
+	if (size !=0 && data != NULL)
+		bcopy(data, packet->data, size);
 }
 
 
