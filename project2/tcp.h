@@ -1,4 +1,5 @@
 #define MAX_DATASIZE 1024
+#define TIME_OUT 1000
 typedef struct pkt_t pkt_t;
 struct pkt_t
 {
@@ -13,5 +14,5 @@ struct pkt_t
 };
 void error(const char *msg);
 void make_pkt(pkt_t *packet, bool SYN, bool ACK, bool FIN, int seq_num, int ack_num, int size, char *data);
-
+bool check_pkt (pkt_t *packet);
 
