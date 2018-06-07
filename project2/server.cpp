@@ -21,9 +21,11 @@ class Server
         void recv_packet(pkt_t *packet);
         void fill_pkt(pkt_t *packet, FILE *file, int len);
         void send_file();
+        bool wait_for_packet();//false for timeout and true for input
+        short cal_seq_num(int add_val, short seq_num);//calculate new seq number
+        short cli_seq_num, serv_seq_num;
 	private:
 		int sockfd, newsockfd, portno;
-		unsigned long cli_seq_num, serv_seq_num;
 		socklen_t clilen;
 		struct sockaddr_in serv_addr, cli_addr;
 		bool connection;
@@ -101,6 +103,21 @@ void Server::setup_server()
 
     // clilen = sizeof(cli_addr);
 
+    //setup poll and timeout
+    fds[0].fd = sockfd;
+    fds[0].events = POLLIN;
+}
+
+bool Server::wait_for_packet()
+{
+    int ret = poll(fds, 1, TIME_OUT);
+    if (ret == -1)
+        error("Error: poll");
+    if (ret == 0)
+        return false;
+    if (fds[0].revents & POLLIN)
+        return true;
+    return false;
 }
 void Server::hand_shake()
 {
@@ -120,7 +137,8 @@ void Server::hand_shake()
 	{
 		// ack the syn
       	pkt_t syn_ack;
-	  	make_pkt(&syn_ack, true, false, false, serv_seq_num, ++cli_seq_num, 0, NULL);
+	  	make_pkt(&syn_ack, true, false, false, serv_seq_num, ++cli_seq_num, 0, NULL);//need to change
+                                                                    //all update to seq_num needs seq calculator now
         send_packet(syn_ack)
 	    //receive ack
 	    pkt_t rec_ack;

@@ -18,7 +18,6 @@ class Client
         void create_socket();
         void send_packet(pkt_t *packet);
         void recv_packet(pkt_t *packet);
-        bool wait_for_packet();//false for timeout and true for input
         int hand_shake();
         short cal_seq_num(int add_val, short seq_num);//calculate new seq number
         short cli_seq_num, serv_seq_num;
