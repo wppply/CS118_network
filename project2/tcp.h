@@ -12,9 +12,15 @@ struct pkt_t
     short ack_num;
     unsigned long check_sum;
     short data_size;
+    short file_status;//-1: not for usage
+    				  // 0: eof
+    				  // 1: more data
+    				  // 2: no file
+    				  // 3: request file (client side)
     char data[MAX_DATASIZE];
 };
 void error(const char *msg);
-void make_pkt(pkt_t *packet, bool SYN, bool ACK, bool FIN, int seq_num, int ack_num, int size, char *data);
+void make_pkt(pkt_t *packet, bool SYN, bool ACK, bool FIN, short seq_num, 
+				short ack_num, int size, short file_status, char *data);
 bool check_pkt (pkt_t *packet);
 

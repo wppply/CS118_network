@@ -18,13 +18,15 @@ static unsigned long cal_check_sum(unsigned char *str, int size)
         return hash;
     }
 
-void make_pkt (pkt_t *packet, bool SYN, bool ACK, bool FIN, int seq_num, int ack_num, int size, char *data)
+void make_pkt(pkt_t *packet, bool SYN, bool ACK, bool FIN, short seq_num, 
+                short ack_num, int size, short file_status, char *data)
 {
     packet->SYN = SYN;
     packet->ACK = ACK;
     packet->FIN = FIN;
     packet->seq_num = seq_num;
     packet->data_size = size;
+    packet->file_status = file_status;
     if (size == 0)
         return;
     if (data != NULL)
