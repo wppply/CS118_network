@@ -1,22 +1,14 @@
 #include "tcp.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-void error(char *msg)
+void error(const char *msg)
 {
     perror(msg);
     exit(1);
 }
 
-struct pkt_t
-{
-    bool SYN;
-    bool ACK;
-    bool FIN;
-    unsigned long seq_num;
-    unsigned long ack_num;
-    unsigned long check_sum;
-    int data_size;
-    char data[MAX_DATASIZE];
-};
 
 static unsigned long cal_check_sum(unsigned char *str, int size)
     {

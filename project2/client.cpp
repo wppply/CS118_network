@@ -18,7 +18,7 @@ class Client
         int hand_shake();
         int request_file(char *file_name);
     private:
-        int sockfd, portno
+        int sockfd, portno;
         unsigned long cli_seq_num, serv_seq_num;
         char *hostname;
         struct hostent *server;
@@ -95,8 +95,8 @@ int main(int argc, char** argv)
     char *filename = argv[3];
     
     Client *client = new Client(hostname, portno);
-    client.create_socket();
-    client.hand_shake();
+    client->create_socket();
+    client->hand_shake();
     while(1)
     {
 
