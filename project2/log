@@ -11,7 +11,8 @@ client part:
 
 server part:
 1. handshake: update the seq and ack right and after every time
-2. implement waiting with select
+2. implement waiting with wait_for_packet, usage may be wrong
+3. Use double pointer to implement slide window
 
 
 tcp part:
@@ -22,9 +23,11 @@ tcp part:
 =======================================================
 Difficulty:
 1. different usage of socket for udp instead of tcp.
+2. TIMEOUT implement: poll/select/socketopt
 
 
 =======================================================
 Leaving Problems:
 1. Typeof struct pkt_t pkt_t
 Finished.
+2. Because of seq over-flow, create another seq for packet for far
