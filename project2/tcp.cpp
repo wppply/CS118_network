@@ -39,7 +39,12 @@ void make_pkt (pkt_t *packet, bool SYN, bool ACK, bool FIN, int seq_num, int ack
     }
 }
 
-
+//return true for correct checksum, false for incorrect
+bool check_pkt (pkt_t *packet)
+{
+    unsigned long computed_cs = cal_check_sum((unsigned char*) packet->data, packet->size);
+    return computed_cs == packet->check_sum;
+}
 
 
 
