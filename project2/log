@@ -6,6 +6,8 @@ client part:
 	use bookpage 254 tcp handshake design, and the third message doesn't carry data for simplicity
 
 server part:
+1. handshake: update the seq and ack right and after every time
+
 
 
 
@@ -15,3 +17,8 @@ server part:
 =======================================================
 Difficulty:
 1. different usage of socket for udp instead of tcp.
+
+
+=======================================================
+Leaving Problems:
+1. Typeof struct pkt_t pkt_t
