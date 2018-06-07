@@ -20,7 +20,8 @@ class Client
         void recv_packet(pkt_t *packet);
         bool wait_for_packet();//false for timeout and true for input
         int hand_shake();
-        unsigned long cli_seq_num, serv_seq_num;
+        short cal_seq_num(int add_val, short seq_num);//calculate new seq number
+        short cli_seq_num, serv_seq_num;
     private:
         int sockfd, portno;
         char *hostname;
@@ -36,6 +37,16 @@ Client::Client(char *host_name, int port_number)
     cli_seq_num = 0;
     server = NULL;
 
+}
+
+short Client::cal_seq_num(int add_val, short seq_num)
+{
+    long s = (long) add_val + (long) seq_num;
+    if (s > MAX_SEQ_NUM)
+    {
+        s = s - MAX_SEQ_NUM;
+    }
+    return (short) s;
 }
 
 void Client::send_packet(pkt_t *packet)
@@ -74,7 +85,7 @@ void Client::create_socket()
 bool Client::wait_for_packet()
 {
     int ret = poll(fds, 1, TIME_OUT);
-        if (ret == -1)
+    if (ret == -1)
         error("Error: poll");
     if (ret == 0)
         return false;
@@ -122,7 +133,7 @@ int main(int argc, char** argv)
     pkt_t file_req;
     make_pkt(&file_req, false, true, false, updated_seq_num, client->serv_seq_num, filename_size, filename);
     client->send_packet(&file_req);
-
+    //receive file
     while(1)
     {
 

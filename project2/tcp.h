@@ -1,15 +1,17 @@
 #define MAX_DATASIZE 1024
-#define TIME_OUT 1000
+#define TIME_OUT 500
+#define MAX_SEQ_NUM 30719
+#define WINDOW_SIZE 5120
 typedef struct pkt_t pkt_t;
 struct pkt_t
 {
     bool SYN;
     bool ACK;
     bool FIN;
-    unsigned long seq_num;
-    unsigned long ack_num;
+    short seq_num;
+    short ack_num;
     unsigned long check_sum;
-    int data_size;
+    short data_size;
     char data[MAX_DATASIZE];
 };
 void error(const char *msg);
