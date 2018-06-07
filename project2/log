@@ -8,7 +8,7 @@ client part:
 
 server part:
 1. handshake: update the seq and ack right and after every time
-
+2. implement waiting with select
 
 
 tcp part:
