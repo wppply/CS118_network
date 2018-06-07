@@ -4,6 +4,9 @@ client part:
 2. handshake: update seq_nums and establish connection.
 	use bookpage 254 tcp handshake design, and the third message doesn't carry data for simplicity
 3. the only packet with data size not zero is the file request. The filename is inside the  data area. The filename is a c string with \0 at last.
+
+4.add timeout using poll
+
 *handshake and file request are currently in rdt 1.0
 
 server part:
@@ -24,3 +27,4 @@ Difficulty:
 =======================================================
 Leaving Problems:
 1. Typeof struct pkt_t pkt_t
+Finished.
