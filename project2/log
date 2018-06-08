@@ -4,19 +4,19 @@ client part:
 2. handshake: update seq_nums and establish connection.
 	use bookpage 254 tcp handshake design, and the third message doesn't carry data for simplicity
 3. the only packet with data size not zero is the file request. The filename is inside the  data area. The filename is a c string with \0 at last.
-
-4.add timeout using poll
+4. seq cal method
 
 *handshake and file request are currently in rdt 1.0
 
 server part:
 1. handshake: update the seq and ack right and after every time
 2. implement waiting with select
-
+3. seq_num cal method
+4.add timeout using poll
 
 tcp part:
 1. checksum 
-
+2. add file status to headers(this is a header for file not for tcp)
 
 
 =======================================================

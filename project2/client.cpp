@@ -77,27 +77,13 @@ void Client::create_socket()
     serv_addr.sin_family = AF_INET;
     bcopy((char *)server->h_addr, (char *) &serv_addr.sin_addr.s_addr, server->h_length);
     serv_addr.sin_port = htons(portno);
-    //setup poll and timeout
-    fds[0].fd = sockfd;
-    fds[0].events = POLLIN;
-}
-bool Client::wait_for_packet()
-{
-    int ret = poll(fds, 1, TIME_OUT);
-    if (ret == -1)
-        error("Error: poll");
-    if (ret == 0)
-        return false;
-    if (fds[0].revents & POLLIN)
-        return true;
-    return false;
 }
 
 int Client::hand_shake()
 {
     //send SYN=1 special message
     pkt_t start_con;
-    make_pkt(&start_con, true, false, false, cli_seq_num, 0, 0, NULL);
+    make_pkt(&start_con, true, false, false, cli_seq_num, 0, -1, 0, NULL);
     send_packet(&start_con);
     //receive SYNACK message from server
     pkt_t recv_con;
@@ -105,7 +91,7 @@ int Client::hand_shake()
     serv_seq_num = recv_con.seq_num+1;
     //establish connection
     pkt_t estab_con;
-    make_pkt(&start_con, false, true, false, ++cli_seq_num, serv_seq_num, 0, NULL);
+    make_pkt(&start_con, false, true, false, ++cli_seq_num, serv_seq_num, -1, 0, NULL);
     send_packet(&estab_con);
     //establishment successful
     return 1;
@@ -130,12 +116,14 @@ int main(int argc, char** argv)
     int filename_size = strlen(filename) + 1;
     unsigned long updated_seq_num = client->cli_seq_num + filename_size;
     pkt_t file_req;
-    make_pkt(&file_req, false, true, false, updated_seq_num, client->serv_seq_num, filename_size, filename);
+    make_pkt(&file_req, false, true, false, updated_seq_num, client->serv_seq_num, 3, filename_size, filename);
     client->send_packet(&file_req);
     //receive file
     while(1)
     {
-
+        pkt_t p;
+        client->recv_packet(&p);
+        
     }
 
 }
