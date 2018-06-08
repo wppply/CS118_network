@@ -19,6 +19,7 @@ class Client
         void send_packet(pkt_t *packet);
         void recv_packet(pkt_t *packet);
         int hand_shake();
+        bool wait_for_packet();
         short cal_seq_num(int add_val, short seq_num);//calculate new seq number
         short cli_seq_num, serv_seq_num;
     private:
@@ -77,6 +78,21 @@ void Client::create_socket()
     serv_addr.sin_family = AF_INET;
     bcopy((char *)server->h_addr, (char *) &serv_addr.sin_addr.s_addr, server->h_length);
     serv_addr.sin_port = htons(portno);
+    //setup poll and timeout
+    fds[0].fd = sockfd;
+    fds[0].events = POLLIN;
+}
+
+bool Client::wait_for_packet()
+{
+    int ret = poll(fds, 1, TIME_OUT);
+    if (ret == -1)
+        error("Error: poll");
+    if (ret == 0)
+        return false;
+    if (fds[0].revents & POLLIN)
+        return true;
+    return false;
 }
 
 int Client::hand_shake()
@@ -123,7 +139,7 @@ int main(int argc, char** argv)
     {
         pkt_t p;
         client->recv_packet(&p);
-        
+
     }
 
 }
