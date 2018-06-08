@@ -21,6 +21,6 @@ struct pkt_t
 };
 void error(const char *msg);
 void make_pkt(pkt_t *packet, bool SYN, bool ACK, bool FIN, short seq_num, 
-				short ack_num, short size, short file_status, char *data);
-bool check_pkt (pkt_t *packet);
+				short ack_num, short file_status, short size, char *data);
+bool check_pkt (pkt_t *packet);//return true for correct checksum, false for incorrect
 
