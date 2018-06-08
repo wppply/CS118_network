@@ -17,10 +17,11 @@ class Server
 		~Server();
 		void setup_server();
 		void hand_shake();
+        void send_fin();
         void send_packet(pkt_t *packet);
         void recv_packet(pkt_t *packet);
         void fill_pkt(pkt_t *packet, FILE *file, int len);
-        void send_file();
+        void send_file(char *file_name) ;
         bool wait_for_packet();//false for timeout and true for input
         short cal_seq_num(int add_val, short seq_num);//calculate new seq number
         short cli_seq_num, serv_seq_num;
@@ -52,31 +53,6 @@ void Server::recv_packet(pkt_t *packet)
     if (recvlen == -1)
         error("Error: fail to receive package");
 }
-
-void Server::fill_pkt(pkt_t *packet, FILE *file, int len)
-{
-
-}
-
-void Server::send_file() 
-{   
-
-
-
-    FILE *file = fopen(file_name, "rb");
-    if (file == NULL) 
-    {
-        error("failed to open file. file not exist")
-    }
-
-    struct stat stat_buf;
-    int file_size = fstat(fd, &stat_buf);
-    file_size == 0 ? stat_buf.st_size : -1;
-
-
-}
-
-
 
 void Server::setup_server() 
 {
@@ -119,6 +95,7 @@ bool Server::wait_for_packet()
         return true;
     return false;
 }
+
 void Server::hand_shake()
 {
 
@@ -148,11 +125,95 @@ void Server::hand_shake()
         // update seq_nums 
 
     }
+}
+
+
+void Server::send_fin(){
+    printf("waiting for fin from client\n");
 
 
 }
 
 
+void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *file, int file_size)
+{
+    // figure out data_size
+    if (pkt_next_seq == num_packet) 
+    {
+        data_pkt->data_size = file_size % MAX_DATASIZE;
+        int status = 0;
+    }else{
+        data_pkt->data_size = MAX_DATASIZE;
+        int status = 1;
+    }
+
+    make_pkt(&data_pkt, false, false, false, short seq_num, short ack_num, data_size, status, NULL);
+
+    fseek(file, (nextSeqNum - 1) * MAX_DATASIZE, SEEK_SET);
+    fread(data_pkt->data, sizeof(char), data_pkt->data_size, file);
+}
+
+void Server::send_file(char *file_name) 
+{   
+
+    FILE *file = fopen(file_name, "rb");
+    if (file == NULL) 
+    {
+        error("failed to open file. file not exist")
+    }
+    // find how long the file is
+    struct stat stat_buf;
+    int file_size = fstat(fd, &stat_buf);
+    file_size == 0 ? stat_buf.st_size : -1;
+    //how many packet we need to send totally
+    int num_packet = ceil(file_size / MAX_DATASIZE);
+
+    // because the seq may over flow, define annother for packet number
+    int pkt_cur_seq = 1;
+    int pkt_next_seq = 1;
+
+    pkt_t data_pkt, ack_pkt;
+
+    while(current_seq <= num_packet )
+    {
+
+        int pkt_temp_seq = pkt_next_seq;//double pointers to control window
+
+        for(int i=0; i < pkt_cur_seq+WINDOWSIZE/MAX_DATASIZE-pkt_temp_seq && pkt_next_seq<=num_packet;i++)
+        {
+
+            fill_pkt(&data_pkt,pkt_next_seq,num_packet,file,file_size);
+            send_packet(data_pkt);
+            printf("sent %d bytes, SEQ: %d , ACK: %d \n", data_pkt.data_size, data_pkt.seq_num, data_pkt.ack_num);
+
+            pkt_next_seq++;
+
+        }
+
+
+        if (!wait_for_packet()) // if packet is arriving within time
+        {
+            recv_packet(ack_pkt);
+            if(ack_pkt.ACK){
+                printf("ACK: %d received, , currentSeq %d\n", ack_pkt.ack_pkt, ack_pkt.seq_num);
+                pkt_cur_seq++;
+            }
+
+            else if (ack_pkt.NAK){
+                printf("NAK: %d received, , currentSeq %d\n", ack_pkt.ack_pkt, ack_pkt.seq_num);
+                pkt_next_seq = pkt_cur_seq;
+            }
+            
+
+        }else{ // timeout
+            printf("TIME_OUT for ACK: %d\n", pkt_cur_seq + 1);// supposed to return cli_seq_num here
+            pkt_next_seq = pkt_cur_seq;
+
+        }
+    }
+    printf("Complete File transfer.\n");
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -167,9 +228,6 @@ int main(int argc, char *argv[])
     Server *server = new Server(portno);
     server->setup_server();
     server->hand_shake();
-
-
-
 
 
 }
