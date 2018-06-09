@@ -57,7 +57,8 @@ short Server::cal_seq_num(int add_val, short seq_num)
 
 void Server::send_packet(pkt_t *packet)
 {
-    int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, sizeof(serv_addr));
+    int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, sizeof(cli_addr));
+    printf("send packet\n");
     if (sendlen == -1)
         error("Error: fail to send package");
 }
@@ -65,7 +66,8 @@ void Server::send_packet(pkt_t *packet)
 void Server::recv_packet(pkt_t *packet)
 {
     socklen_t len;
-    int recvlen = recvfrom(sockfd, packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &len);
+    int recvlen = recvfrom(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &len);
+    printf("receive packet");
     if (recvlen == -1)
         error("Error: fail to receive package");
 }
@@ -133,9 +135,9 @@ void Server::hand_shake()
 	if (recv_req.SYN && connection == false) 
 	{
 		// ack the syn
-      	pkt_t syn_ack;
+      	pkt_t syn_ack; 
         cli_seq_num = cal_seq_num(1,cli_seq_num);
-	  	make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, 0, -1, NULL);//need to change
+	  	make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);//need to change
         send_packet(&syn_ack);
 	    //receive ack
 	           // pkt_t recv_ack;

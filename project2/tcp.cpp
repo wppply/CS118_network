@@ -32,9 +32,11 @@ void make_pkt(pkt_t *packet, bool SYN, bool ACK, bool FIN, short seq_num,
     packet->ack_num = ack_num;
     packet->file_status = file_status;
     packet->data_size = size;
-
-    bzero(packet->data, size);
-    memcpy(packet->data, data, size);
+    if (size > 0)
+    {
+        bzero(packet->data, size);
+        memcpy(packet->data, data, size);
+    }
     
     cal_check_sum(packet);
 
