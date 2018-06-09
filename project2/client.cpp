@@ -100,12 +100,12 @@ int Client::hand_shake()
     //send SYN=1 special message
     pkt_t start_con;
     make_pkt(&start_con, true, false, false, cli_seq_num, 0, -1, 0, NULL);
-    client->cli_seq_num++;
+    cli_seq_num++;
     do
     {
         send_packet(&start_con);
     }
-    while (!client->wait_for_packet());
+    while (!wait_for_packet());
     //receive SYNACK message from server
     pkt_t recv;
     recv_packet(&recv);
@@ -113,7 +113,7 @@ int Client::hand_shake()
     //establish connection
     pkt_t estab_con;
     make_pkt(&start_con, false, true, false, cli_seq_num, serv_seq_num, -1, 0, NULL);
-    client->cli_seq_num++;
+    cli_seq_num++;
     send_packet(&estab_con);
 
     //establishment successful
@@ -137,7 +137,7 @@ int main(int argc, char** argv)
     client->hand_shake();
     //send file request
     int filename_size = strlen(filename) + 1;
-    client->cli_seq_num = cal_seq_num(filename_size, client->cli_seq_num);
+    client->cli_seq_num = client->cal_seq_num(filename_size, client->cli_seq_num);
     pkt_t file_req;
     make_pkt(&file_req, false, true, false, client->cli_seq_num, client->serv_seq_num, 3, filename_size, filename);
     do 
@@ -196,7 +196,7 @@ int main(int argc, char** argv)
                 else                                //if there are more data then make packet
                 {
                     client->serv_seq_num = client->cal_seq_num(r.data_size, client->serv_seq_num);
-                    make_pkt(&s, false, true, false, client->cli_seq_numm client->serv_seq_num, -1, 0, NULL);
+                    make_pkt(&s, false, true, false, client->cli_seq_num, client->serv_seq_num, -1, 0, NULL);
                 }
             }
             else if (r.seq_num > client->serv_seq_num) //packet arrives early (out of order)
@@ -233,7 +233,7 @@ int main(int argc, char** argv)
     }
     //start fin
     pkt_t fin;
-    make_pkt(&fin, false, false, true, client->cli_seq_num, client->ack_num, -1, 0, NULL);
+    make_pkt(&fin, false, false, true, client->cli_seq_num, client->serv_seq_num, -1, 0, NULL);
     while (1)
     {
         client->send_packet(&fin);
@@ -242,7 +242,7 @@ int main(int argc, char** argv)
             pkt_t r;
             client->recv_packet(&r);
             if (r.FIN)
-                return;
+                return 1;
             else
                 continue;
         }     
