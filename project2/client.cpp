@@ -19,7 +19,7 @@ class Client
         void send_packet(pkt_t *packet);
         void recv_packet(pkt_t *packet);
         int hand_shake();
-        bool wait_for_packet();
+        bool wait_for_packet();//false for timeout and true for input
         short cal_seq_num(int add_val, short seq_num);//calculate new seq number
         short cli_seq_num, serv_seq_num;
     private:
@@ -130,16 +130,91 @@ int main(int argc, char** argv)
     client->hand_shake();
     //send file request
     int filename_size = strlen(filename) + 1;
-    unsigned long updated_seq_num = client->cli_seq_num + filename_size;
+    client->cli_seq_num = cal_seq_num(filename_size, client->cli_seq_num);
     pkt_t file_req;
-    make_pkt(&file_req, false, true, false, updated_seq_num, client->serv_seq_num, 3, filename_size, filename);
-    client->send_packet(&file_req);
+    make_pkt(&file_req, false, true, false, client->cli_seq_num, client->serv_seq_num, 3, filename_size, filename);
+    do 
+    {
+        client->send_packet(&file_req);
+    }
+    while (!client->wait_for_packet());
+
+    //file 
+    FILE *fp;
+    int create_file = 1;//flag of creating file.
+    int fin_flag = 0;
+    pkt_t last = file_req; // last sent packet
     //receive file
     while(1)
     {
-        pkt_t p;
-        client->recv_packet(&p);
+        //receive packet
+        pkt_t r;
+        client->recv_packet(&r);
+        if (!check_pkt(&r))//wrong checksum
+        {
+            do //resend last packet
+            {
+                client->send_packet(&last);
+            }
+            while (!client->wait_for_packet());//if timeout then resend again
+            continue;                          //if not timeout restart the while loop
+        }
 
+        //packet to send
+        pkt_t s;
+
+        //if server send no_file, set fin
+        if (r.file_status == 2)
+        {
+            fprintf(stderr, "ERROR: no required file");
+            fin_flag = 1;
+        }
+        else //after handshake if not no_file server only send file
+        {
+            if (create_file) //only create file once
+            {
+                FILE *fp = fopen("received.data", "w");
+                create_file = 0;
+            }
+                
+            //check data seq
+            if (r.seq_num == client->serv_seq_num) //correct packet order
+            {
+                fwrite(r.data, sizeof(char), r.data_size, fp); // write to file
+                if (r.file_status == 0)              //if eof then close file and set fin
+                {
+                    fclose(fp);
+                    fin_flag = 1;
+                }
+                else                                //if there are more data then make packet
+                {
+                    client->serv_seq_num = client->cal_seq_num(r.data_size, client->serv_seq_num);
+                    make_pkt(&s, false, true, false, client->cli_seq_numm client->serv_seq_num, -1, 0, NULL);
+                }
+            }
+            else if (p.seq_num > client->serv_seq_num) //packet arrives early (out of order)
+            {
+                //packet keeps the last one
+                s = last;
+            }
+            else //packet arrives late or duplicate
+            {
+                //ignore this packet
+            }
+            if (p.ACK)
+            {
+
+            }
+        }
+        //send fin
+        if (fin_flag)
+        {
+
+        }
+        // send packet
+
+        //keep track of last packet
+        last = s;
     }
 
 }

@@ -29,7 +29,7 @@ static unsigned long cal_check_sum(pkt_t *packet, int size)
     }
 
 void make_pkt(pkt_t *packet, bool SYN, bool ACK, bool FIN, short seq_num, 
-                short ack_num, , short file_status, short size, char *data)
+                short ack_num, short file_status, short size, char *data)
 {
     packet->SYN = SYN;
     packet->ACK = ACK;
