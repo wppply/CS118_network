@@ -140,14 +140,16 @@ void Server::hand_shake()
         cli_seq_num = cal_seq_num(1,cli_seq_num);
 	  	make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);//need to change
         send_packet(&syn_ack);
+        serv_seq_num = cal_seq_num(1,serv_seq_num);
 	    //receive ack
 	           // pkt_t recv_ack;
     	recv_packet(&syn_ack);
+        if (syn_ack.ack_num == serv_seq_num){
+            connection = true;
+            printf("server: waiting request from client \n");
 
-        // send ack for last time 
-
-        connection = true;
-        printf("server: waiting request from client \n");
+        }
+        
         // update seq_nums 
 
     }
