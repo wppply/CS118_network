@@ -59,7 +59,7 @@ void Client::send_packet(pkt_t *packet)
 void Client::recv_packet(pkt_t *packet)
 {
     socklen_t len;
-    int recvlen = recvfrom(sockfd, packet, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, &len);
+    int recvlen = recvfrom(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, &len);
     if (recvlen == -1)
         error("Error: fail to receive package");
 }
@@ -143,6 +143,7 @@ int main(int argc, char** argv)
     do 
     {
         client->send_packet(&file_req);
+        printf("send file req\n");
     }
     while (!client->wait_for_packet());
 

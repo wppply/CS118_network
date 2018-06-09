@@ -57,7 +57,8 @@ short Server::cal_seq_num(int add_val, short seq_num)
 
 void Server::send_packet(pkt_t *packet)
 {
-    int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, sizeof(serv_addr));
+    int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, sizeof(cli_addr));
+    printf("send packet\n");
     if (sendlen == -1)
         error("Error: fail to send package");
 }
@@ -65,7 +66,9 @@ void Server::send_packet(pkt_t *packet)
 void Server::recv_packet(pkt_t *packet)
 {
     socklen_t len;
-    int recvlen = recvfrom(sockfd, packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &len);
+    printf("To receive packet\n");
+    int recvlen = recvfrom(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &len);
+    printf("receive packet\n");
     if (recvlen == -1)
         error("Error: fail to receive package");
 }
@@ -122,8 +125,8 @@ void Server::hand_shake()
 	socklen_t len;
     // first SYN
 
-    int recvlen = recvfrom(sockfd, &recv_req, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, &len);
-    printf("receive first syn\n");
+    int recvlen = recvfrom(sockfd, &recv_req, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &len);
+    printf("receive first syn, len: %d, sizeofaddr: %lu\n", len, sizeof(cli_addr));
 
     if (recvlen == -1)
         error("Error: fail to receive package");
@@ -133,9 +136,9 @@ void Server::hand_shake()
 	if (recv_req.SYN && connection == false) 
 	{
 		// ack the syn
-      	pkt_t syn_ack;
+      	pkt_t syn_ack; 
         cli_seq_num = cal_seq_num(1,cli_seq_num);
-	  	make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, 0, -1, NULL);//need to change
+	  	make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);//need to change
         send_packet(&syn_ack);
 	    //receive ack
 	           // pkt_t recv_ack;
@@ -183,7 +186,7 @@ void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *f
     }
 
     // maybe need to minus 1 here
-    make_pkt(data_pkt, false, false, false,serv_seq_num, cal_seq_num(1,cli_seq_num), data_pkt->data_size, status, NULL);
+    make_pkt(data_pkt, false, false, false,serv_seq_num, cal_seq_num(1,cli_seq_num), status, data_pkt->data_size, NULL);
 
     fseek(file, (pkt_next_seq - 1) * MAX_DATASIZE, SEEK_SET);
     fread(data_pkt->data, sizeof(char), data_pkt->data_size, file);
@@ -197,17 +200,18 @@ void Server::send_file(pkt_t *recv_pkt)
     int pkt_cur_seq = 1;
     int pkt_next_seq = 1;
     char *file_name = recv_pkt->data;
-
+    
 
     FILE *file = fopen(file_name, "rb");
     if (file == NULL) 
     {
         error("failed to open file. file not exist");
-        make_pkt(&data_pkt, false, false, true, serv_seq_num, cal_seq_num(1,recv_pkt->seq_num), 0, 2, NULL);
+        make_pkt(&data_pkt, false, false, true, serv_seq_num, cal_seq_num(1,recv_pkt->seq_num), 2, 0, NULL);
         send_packet(&data_pkt);
 
     }
 
+    
     // find how long the file is
     struct stat stat_buf;
     int rc = stat(file_name, &stat_buf);
@@ -224,7 +228,7 @@ void Server::send_file(pkt_t *recv_pkt)
         for(int i=0; (i < pkt_cur_seq+WINDOW_SIZE/MAX_DATASIZE - pkt_temp_seq) && pkt_next_seq<=num_packet;i++)
         {
 
-            fill_pkt(&data_pkt,pkt_next_seq,num_packet,file,file_size);
+            fill_pkt(&data_pkt,pkt_next_seq,num_packet,file,file_size); printf("1\n");
             send_packet(&data_pkt);
             printf("sent %d bytes, SEQ: %d , ACK: %d \n", data_pkt.data_size, data_pkt.seq_num, data_pkt.ack_num);
 
