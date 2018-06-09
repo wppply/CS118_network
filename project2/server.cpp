@@ -75,7 +75,6 @@ void Server::recv_packet(pkt_t *packet)
 
 void Server::setup_server() 
 {
-
 	// Creating socket file descriptor
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
         perror("socket creation failed");
@@ -93,7 +92,7 @@ void Server::setup_server()
     serv_addr.sin_port = htons(portno);
 
 
-    if (bind(sockfd, (struct sockaddr *)&cli_addr, sizeof(serv_addr)) < 0)
+    if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
         error("ERROR on binding");
 
     // clilen = sizeof(cli_addr);
@@ -101,8 +100,6 @@ void Server::setup_server()
     //setup poll and timeout
     fds[0].fd = sockfd;
     fds[0].events = POLLIN;
-
-    
 }
 
 bool Server::wait_for_packet()
@@ -120,35 +117,35 @@ bool Server::wait_for_packet()
 void Server::hand_shake()
 {
 
-	// receiving request from server
-	pkt_t recv_req;
-	socklen_t len;
+    // receiving request from server
+    pkt_t recv_req;
+    socklen_t len;
     // first SYN
     printf("waiting for SYN\n");
-    int recvlen = recvfrom(sockfd, &recv_req, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &len);
+
+    recv_packet(&recv_req);
     printf("receive first syn, len: %d, sizeofaddr: %lu\n", len, sizeof(cli_addr));
 
-    if (recvlen == -1)
-        error("Error: fail to receive package");
 
     cli_seq_num = recv_req.seq_num;
 
-	if (recv_req.SYN && connection == false) 
-	{
+    if (recv_req.SYN && connection == false) 
+    {
 
-		// ack the syn
-      	pkt_t syn_ack; 
+        // ack the syn
+        pkt_t syn_ack; 
         cli_seq_num = cal_seq_num(1,cli_seq_num);
-	  	make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);//need to change
+        make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);//need to change
         send_packet(&syn_ack);
         serv_seq_num = cal_seq_num(1,serv_seq_num);
-	    //receive ack
-	    // pkt_t recv_ack;
-    	recv_packet(&syn_ack);
+        //receive ack
+        // pkt_t recv_ack;
+        recv_packet(&syn_ack);
         if (syn_ack.ack_num == serv_seq_num){
             connection = true;
             printf("server: waiting request from client \n");
         }
+        
     }
 }
 
