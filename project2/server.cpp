@@ -66,8 +66,9 @@ void Server::send_packet(pkt_t *packet)
 void Server::recv_packet(pkt_t *packet)
 {
     socklen_t len;
+    printf("To receive packet\n");
     int recvlen = recvfrom(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &len);
-    printf("receive packet");
+    printf("receive packet\n");
     if (recvlen == -1)
         error("Error: fail to receive package");
 }
@@ -124,8 +125,8 @@ void Server::hand_shake()
 	socklen_t len;
     // first SYN
 
-    int recvlen = recvfrom(sockfd, &recv_req, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, &len);
-    printf("receive first syn\n");
+    int recvlen = recvfrom(sockfd, &recv_req, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &len);
+    printf("receive first syn, len: %d, sizeofaddr: %lu\n", len, sizeof(cli_addr));
 
     if (recvlen == -1)
         error("Error: fail to receive package");
@@ -199,7 +200,7 @@ void Server::send_file(pkt_t *recv_pkt)
     int pkt_cur_seq = 1;
     int pkt_next_seq = 1;
     char *file_name = recv_pkt->data;
-
+    
 
     FILE *file = fopen(file_name, "rb");
     if (file == NULL) 
@@ -210,6 +211,7 @@ void Server::send_file(pkt_t *recv_pkt)
 
     }
 
+    
     // find how long the file is
     struct stat stat_buf;
     int rc = stat(file_name, &stat_buf);
@@ -226,7 +228,7 @@ void Server::send_file(pkt_t *recv_pkt)
         for(int i=0; (i < pkt_cur_seq+WINDOW_SIZE/MAX_DATASIZE - pkt_temp_seq) && pkt_next_seq<=num_packet;i++)
         {
 
-            fill_pkt(&data_pkt,pkt_next_seq,num_packet,file,file_size);
+            fill_pkt(&data_pkt,pkt_next_seq,num_packet,file,file_size); printf("1\n");
             send_packet(&data_pkt);
             printf("sent %d bytes, SEQ: %d , ACK: %d \n", data_pkt.data_size, data_pkt.seq_num, data_pkt.ack_num);
 

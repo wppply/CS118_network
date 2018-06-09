@@ -143,6 +143,7 @@ int main(int argc, char** argv)
     do 
     {
         client->send_packet(&file_req);
+        printf("send file req\n");
     }
     while (!client->wait_for_packet());
 
