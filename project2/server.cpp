@@ -11,7 +11,7 @@
 #include <arpa/inet.h>
 #include <math.h>
 #include <unistd.h>
-
+#include <poll.h>
 
 class Server
 {
@@ -108,7 +108,7 @@ void Server::hand_shake()
 	// receiving request from server
 	pkt_t recv_req;
 	socklen_t len;
-
+    // first SYN
     int recvlen = recvfrom(sockfd, &recv_req, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, &len);
     if (recvlen == -1)
         error("Error: fail to receive package");
@@ -120,11 +120,13 @@ void Server::hand_shake()
 		// ack the syn
       	pkt_t syn_ack;
         cli_seq_num = cal_seq_num(1,cli_seq_num);
-	  	make_pkt(&syn_ack, true, false, false, serv_seq_num, cli_seq_num, 0, 0, NULL);//need to change
+	  	make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, 0, -1, NULL);//need to change
         send_packet(&syn_ack);
 	    //receive ack
-	    pkt_t recv_ack;
-    	recv_packet(&recv_ack);
+	           // pkt_t recv_ack;
+    	recv_packet(&syn_ack);
+
+        // send ack for last time 
 
         connection = true;
         printf("server: waiting request from client \n");
@@ -145,9 +147,7 @@ void Server::send_fin(pkt_t *data_pkt){
     serv_seq_num = cal_seq_num(1,serv_seq_num);
     make_pkt(data_pkt, false, false, true, serv_seq_num, cli_seq_num, 0, 0, NULL);
     send_packet(data_pkt);
-    // receive ack
-    pkt_t FIN_ack;
-    recv_packet(&FIN_ack);
+
     close(sockfd);
     connection = false;
 
@@ -195,8 +195,8 @@ void Server::send_file(pkt_t *recv_pkt)
 
     // find how long the file is
     struct stat stat_buf;
-    int file_size = fstat(fd, &stat_buf);
-    file_size == 0 ? stat_buf.st_size : -1;
+    int rc = stat(file_name, &stat_buf);
+    int file_size = (rc == 0) ? stat_buf.st_size : -1;
     //how many packet we need to send totally
     int num_packet = ceil(file_size / MAX_DATASIZE);
 
