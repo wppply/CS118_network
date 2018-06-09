@@ -7,6 +7,7 @@ client part:
 4. seq cal method
 5. Client is responsible for sending FIN
 6. after file transmission complete, no ACK, only FIN
+7. For the simplicity, FIN is reduced to 2 ways
 *handshake and file request are currently in rdt 1.0
 
 server part:

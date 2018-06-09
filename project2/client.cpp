@@ -142,7 +142,7 @@ int main(int argc, char** argv)
     //file 
     FILE *fp;
     int create_file = 1;//flag of creating file.
-    int fin_flag = 0;
+    int fin_flag = 0;   // for FIN
     pkt_t last = file_req; // last sent packet
     //receive file
     while(1)
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
         //receive packet
         pkt_t r;
         client->recv_packet(&r);
-        if (!check_pkt(&r))//wrong checksum
+        if (!check_pkt(&r) || r.ack_num != client->cli_seq_num)//wrong checksum or ack
         {
             do //resend last packet
             {
@@ -162,9 +162,9 @@ int main(int argc, char** argv)
 
         //packet to send
         pkt_t s;
-
+        
         //if server send no_file, set fin
-        if (r.file_status == 2)
+        if (r.file_status == 2) 
         {
             fprintf(stderr, "ERROR: no required file");
             fin_flag = 1;
@@ -199,23 +199,48 @@ int main(int argc, char** argv)
             }
             else //packet arrives late or duplicate
             {
-                //ignore this packet
-            }
-            if (p.ACK)
-            {
-
+                //ignore this packet, start timer
+                if(client->wait_for_packet()) //if receives input continue next loop
+                {
+                    continue;
+                }
+                else // if timeout then last packet is going to be sent
+                {
+                    s = last;
+                }
             }
         }
-        //send fin
+        //if fin is set
         if (fin_flag)
         {
-
+            break;
         }
         // send packet
-
+        do 
+        {
+            client->send_packet(&s);
+        }
+        while (!client->wait_for_packet());
         //keep track of last packet
         last = s;
     }
+    //start fin
+    pkt_t fin;
+    make_pkt(&fin, false, false, true, client->cli_seq_num, client->ack_num, -1, 0, NULL);
+    while (1)
+    {
+        client->send_packet(&fin);
+        if (client->wait_for_packet())
+        {
+            pkt_t r;
+            client->recv_packet(&r);
+            if (r.FIN)
+                return;
+            else
+                continue;
+        }     
+    }
+
 
 }
 
