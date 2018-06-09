@@ -9,22 +9,16 @@ void error(const char *msg)
     exit(1);
 }
 
-
-static unsigned long cal_check_sum(pkt_t *packet, int size)
+// packet->checksum will be replaced by new calculated checksum
+static unsigned long cal_check_sum(pkt_t *packet)  
     {
-        unsigned char str[MAX_DATASIZE + 6];
-        str[0] = (unsigned char) packet->SYN;
-        str[1] = (unsigned char) packet->ACK;
-        str[2] = (unsigned char) packet->FIN;
-        str[3] = (unsigned char) packet->seq_num;
-        str[4] = (unsigned char) packet->ack_num;
-        str[5] = (unsigned char) packet->file_status;
-        str[6] = (unsigned char) packet->size;
-        strncat(str, packet->data, sizeof(str));
-        
+        packet->check_sum = 0;
+        unsigned char *str = (unsigned char *) packet;
+        int size = sizeof(pkt_t);
         unsigned long hash = 5381;
         for(int c = 0; c < size; c++)
             hash = ((hash << 5) + hash) + str[c]; /* hash * 33 + c */
+        packet->check_sum = hash;
         return hash;
     }
 
@@ -42,16 +36,15 @@ void make_pkt(pkt_t *packet, bool SYN, bool ACK, bool FIN, short seq_num,
     bzero(packet->data, size);
     memcpy(packet->data, data, size);
     
-    packet->check_sum = cal_check_sum(packet, size);
+    cal_check_sum(packet);
 
 }
 
 bool check_pkt (pkt_t *packet)
 {
-    if (packet->data_size == 0)
-        return true;
-    unsigned long computed_cs = cal_check_sum(packet, packet->data_size);
-    return computed_cs == packet->check_sum;
+    unsigned long cs = packet->check_sum;
+    unsigned long computed_cs = cal_check_sum(packet);
+    return computed_cs == cs;
 }
 
 
