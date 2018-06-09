@@ -100,14 +100,20 @@ int Client::hand_shake()
     //send SYN=1 special message
     pkt_t start_con;
     make_pkt(&start_con, true, false, false, cli_seq_num, 0, -1, 0, NULL);
-    send_packet(&start_con);
+    client->cli_seq_num++;
+    do
+    {
+        send_packet(&start_con);
+    }
+    while (true)
+    {}
     //receive SYNACK message from server
     pkt_t recv_con;
     recv_packet(&recv_con);
     serv_seq_num = recv_con.seq_num+1;
     //establish connection
     pkt_t estab_con;
-    make_pkt(&start_con, false, true, false, ++cli_seq_num, serv_seq_num, -1, 0, NULL);
+    make_pkt(&start_con, false, true, false, cli_seq_num, serv_seq_num, -1, 0, NULL);
     send_packet(&estab_con);
     //establishment successful
     return 1;
@@ -192,7 +198,7 @@ int main(int argc, char** argv)
                     make_pkt(&s, false, true, false, client->cli_seq_numm client->serv_seq_num, -1, 0, NULL);
                 }
             }
-            else if (p.seq_num > client->serv_seq_num) //packet arrives early (out of order)
+            else if (r.seq_num > client->serv_seq_num) //packet arrives early (out of order)
             {
                 //packet keeps the last one
                 s = last;
