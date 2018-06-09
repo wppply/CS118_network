@@ -105,16 +105,17 @@ int Client::hand_shake()
     {
         send_packet(&start_con);
     }
-    while (true)
-    {}
+    while (!client->wait_for_packet());
     //receive SYNACK message from server
-    pkt_t recv_con;
-    recv_packet(&recv_con);
-    serv_seq_num = recv_con.seq_num+1;
+    pkt_t recv;
+    recv_packet(&recv);
+    serv_seq_num = recv.seq_num+1;
     //establish connection
     pkt_t estab_con;
     make_pkt(&start_con, false, true, false, cli_seq_num, serv_seq_num, -1, 0, NULL);
+    client->cli_seq_num++;
     send_packet(&estab_con);
+
     //establishment successful
     return 1;
 }
