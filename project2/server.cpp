@@ -45,9 +45,19 @@ Server::Server(int port_number)
 	connection = false;
 }
 
+short Server::cal_seq_num(int add_val, short seq_num)
+{
+    long s = (long) add_val + (long) seq_num;
+    if (s > MAX_SEQ_NUM)
+    {
+        s = s - MAX_SEQ_NUM;
+    }
+    return (short) s;
+}
+
 void Server::send_packet(pkt_t *packet)
 {
-    int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+    int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, sizeof(serv_addr));
     if (sendlen == -1)
         error("Error: fail to send package");
 }
@@ -55,7 +65,7 @@ void Server::send_packet(pkt_t *packet)
 void Server::recv_packet(pkt_t *packet)
 {
     socklen_t len;
-    int recvlen = recvfrom(sockfd, packet, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, &len);
+    int recvlen = recvfrom(sockfd, packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &len);
     if (recvlen == -1)
         error("Error: fail to receive package");
 }
@@ -88,6 +98,8 @@ void Server::setup_server()
     //setup poll and timeout
     fds[0].fd = sockfd;
     fds[0].events = POLLIN;
+
+    
 }
 
 bool Server::wait_for_packet()
@@ -109,7 +121,10 @@ void Server::hand_shake()
 	pkt_t recv_req;
 	socklen_t len;
     // first SYN
+
     int recvlen = recvfrom(sockfd, &recv_req, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, &len);
+    printf("receive first syn\n");
+
     if (recvlen == -1)
         error("Error: fail to receive package");
 
@@ -168,7 +183,7 @@ void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *f
     }
 
     // maybe need to minus 1 here
-    make_pkt(data_pkt, false, false, false, cal_seq_num(MAX_DATASIZE*pkt_next_seq,cli_seq_num), cal_seq_num(1,cli_seq_num), data_pkt->data_size, status, NULL);
+    make_pkt(data_pkt, false, false, false,serv_seq_num, cal_seq_num(1,cli_seq_num), data_pkt->data_size, status, NULL);
 
     fseek(file, (pkt_next_seq - 1) * MAX_DATASIZE, SEEK_SET);
     fread(data_pkt->data, sizeof(char), data_pkt->data_size, file);
@@ -221,9 +236,10 @@ void Server::send_file(pkt_t *recv_pkt)
         if (!wait_for_packet()) // if packet is arriving within time
         {
             recv_packet(&ack_pkt);
-            if(ack_pkt.ACK){
+            if(ack_pkt.ACK && ack_pkt.ack_num == serv_seq_num){
                 printf("ACK: %d received, , currentSeq %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
                 cli_seq_num = ack_pkt.seq_num;
+                serv_seq_num = cal_seq_num(MAX_DATASIZE, serv_seq_num);
                 pkt_cur_seq++;
             }
             else if (ack_pkt.FIN) // waiting not 
@@ -234,13 +250,14 @@ void Server::send_file(pkt_t *recv_pkt)
             }
             else
             {
-                printf("NAK: %d received, , currentSeq %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
+                printf("FAIL: %d received, , currentSeq %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
                 pkt_next_seq = pkt_cur_seq;
             }
             
 
         }else{ // timeout
-            printf("TIME_OUT for ACK: %d\n", pkt_cur_seq + 1);// supposed to return cli_seq_num here
+
+            printf("ACK: %d received, , currentSeq %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
             pkt_next_seq = pkt_cur_seq;
 
         }
@@ -253,7 +270,7 @@ void Server::send_file(pkt_t *recv_pkt)
 
 int main(int argc, char *argv[])
 {
-	if (argc < 3) 
+	if (argc < 2) 
 	{
 		fprintf(stderr,"ERROR: Usage: ./sev [port]");
 		exit(1);
@@ -265,20 +282,24 @@ int main(int argc, char *argv[])
     Server *server = new Server(portno);
     
     server->setup_server();
-    server->hand_shake();
-
-
-    pkt_t recv_pkt;
-    if (server->connection)
-    {
-        printf("wating for request\n");
-        server->recv_packet(&recv_pkt);
-        if(recv_pkt.file_status == 3)
-            server->send_file(&recv_pkt);
-    }
+    printf("server starting to work\n");
+    
     
     while(1) 
     {   
+        printf("before handshake\n");
+        server->hand_shake();
+        printf("after handshake\n");
+
+
+        pkt_t recv_pkt;
+        if (server->connection)
+        {
+            printf("wating for request\n");
+            server->recv_packet(&recv_pkt);
+            if(recv_pkt.file_status == 3)
+                server->send_file(&recv_pkt);
+        }
 
     }
 
