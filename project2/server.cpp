@@ -90,7 +90,7 @@ void Server::setup_server()
     serv_addr.sin_port = htons(portno);
 
 
-    if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    if (bind(sockfd, (struct sockaddr *)&cli_addr, sizeof(serv_addr)) < 0)
         error("ERROR on binding");
 
     // clilen = sizeof(cli_addr);
