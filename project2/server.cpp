@@ -135,6 +135,7 @@ void Server::hand_shake()
 
 	if (recv_req.SYN && connection == false) 
 	{
+
 		// ack the syn
       	pkt_t syn_ack; 
         cli_seq_num = cal_seq_num(1,cli_seq_num);
@@ -142,16 +143,12 @@ void Server::hand_shake()
         send_packet(&syn_ack);
         serv_seq_num = cal_seq_num(1,serv_seq_num);
 	    //receive ack
-	           // pkt_t recv_ack;
+	    // pkt_t recv_ack;
     	recv_packet(&syn_ack);
         if (syn_ack.ack_num == serv_seq_num){
             connection = true;
             printf("server: waiting request from client \n");
-
         }
-        
-        // update seq_nums 
-
     }
 }
 
