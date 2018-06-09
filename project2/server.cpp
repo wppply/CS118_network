@@ -124,7 +124,7 @@ void Server::hand_shake()
 	pkt_t recv_req;
 	socklen_t len;
     // first SYN
-
+    printf("waiting for SYN\n");
     int recvlen = recvfrom(sockfd, &recv_req, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &len);
     printf("receive first syn, len: %d, sizeofaddr: %lu\n", len, sizeof(cli_addr));
 
@@ -242,10 +242,10 @@ void Server::send_file(pkt_t *recv_pkt)
         if (!wait_for_packet()) // if packet is arriving within time
         {
             recv_packet(&ack_pkt);
-            if(ack_pkt.ACK && ack_pkt.ack_num == serv_seq_num){
+            if(ack_pkt.ACK && ack_pkt.ack_num == cal_seq_num(pkt_cur_seq * MAX_DATASIZE, serv_seq_num)) {
                 printf("ACK: %d received, , currentSeq %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
-                cli_seq_num = ack_pkt.seq_num;
-                serv_seq_num = cal_seq_num(MAX_DATASIZE, serv_seq_num);
+                // cli_seq_num = cal_seq_num(ack,ack_pkt.ack_num)  ack_pkt.seq_num ;
+                // serv_seq_num = cal_seq_num(MAX_DATASIZE, serv_seq_num);
                 pkt_cur_seq++;
             }
             else if (ack_pkt.FIN) // waiting not 
@@ -293,9 +293,9 @@ int main(int argc, char *argv[])
     
     while(1) 
     {   
-        printf("before handshake\n");
+        printf("waiting for hand_shake\n");
         server->hand_shake();
-        printf("after handshake\n");
+        printf("hand_shake finished\n");
 
 
         pkt_t recv_pkt;
@@ -304,6 +304,7 @@ int main(int argc, char *argv[])
             printf("wating for request\n");
             server->recv_packet(&recv_pkt);
             if(recv_pkt.file_status == 3)
+                server->cli_seq_num = server->cal_seq_num(recv_pkt.data_size, server->cli_seq_num);
                 server->send_file(&recv_pkt);
         }
 
