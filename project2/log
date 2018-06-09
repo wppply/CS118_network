@@ -5,7 +5,8 @@ client part:
 	use bookpage 254 tcp handshake design, and the third message doesn't carry data for simplicity
 3. the only packet with data size not zero is the file request. The filename is inside the  data area. The filename is a c string with \0 at last.
 4. seq cal method
-
+5. Client is responsible for sending FIN
+6. after file transmission complete, no ACK, only FIN
 *handshake and file request are currently in rdt 1.0
 
 server part:
@@ -13,22 +14,35 @@ server part:
 2. implement waiting with wait_for_packet, usage may be wrong
 3. Use double pointer to implement slide window
 4. seq_num cal method
-5.add timeout using poll
+5. add timeout using poll
 
 
 tcp part:
 1. checksum 
 2. add file status to headers(this is a header for file not for tcp)
+3. remember to set ACK flag to be true when ack_num is significant, which is the case for all packets after handshake.
+4. if there is no data part to send. The seq number is still next expecting byte number.
 
 
 =======================================================
 Difficulty:
 1. different usage of socket for udp instead of tcp.
 2. TIMEOUT implement: poll/select/socketopt
-
+3. file status (or the whole header) might be corrupt!!! how to handle this?
+	so didn't implement checksum yet
 
 =======================================================
 Leaving Problems:
 1. Typeof struct pkt_t pkt_t
 Finished.
 2. Because of seq over-flow, create another seq for packet for far
+=======================================================
+Whole Event:
+	1. client starts handshake to server, both sides initialize seq_nums
+	2. client starts requesting file from server
+	3. server receives file request and then splitting and send file packets. The ack_num is needed but doest really change in this process since client only sends back ACKs.
+	4. client receives file packets and send ACKs.
+	5. server finishes sending file
+	6. client receives end of file and quit receiving loop
+	7. client sends FIN after receives all packets of file successfully and send back ACKs.
+	8. The FIN process starts and the connection finishes.
