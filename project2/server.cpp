@@ -185,7 +185,7 @@ void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *f
     }
 
     // maybe need to minus 1 here
-    make_pkt(data_pkt, false, false, false,serv_seq_num, cal_seq_num(1,cli_seq_num), data_pkt->data_size, status, NULL);
+    make_pkt(data_pkt, false, false, false,serv_seq_num, cal_seq_num(1,cli_seq_num), status, data_pkt->data_size, NULL);
 
     fseek(file, (pkt_next_seq - 1) * MAX_DATASIZE, SEEK_SET);
     fread(data_pkt->data, sizeof(char), data_pkt->data_size, file);
@@ -205,7 +205,7 @@ void Server::send_file(pkt_t *recv_pkt)
     if (file == NULL) 
     {
         error("failed to open file. file not exist");
-        make_pkt(&data_pkt, false, false, true, serv_seq_num, cal_seq_num(1,recv_pkt->seq_num), 0, 2, NULL);
+        make_pkt(&data_pkt, false, false, true, serv_seq_num, cal_seq_num(1,recv_pkt->seq_num), 2, 0, NULL);
         send_packet(&data_pkt);
 
     }
