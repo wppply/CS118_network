@@ -104,17 +104,20 @@ int Client::hand_shake()
     do
     {
         send_packet(&start_con);
+        printf("Sending packet %d SYN\n", start_con.seq_num);
     }
     while (!wait_for_packet());
     //receive SYNACK message from server
     pkt_t recv;
     recv_packet(&recv);
+    printf("Receiving packet %d\n", recv.seq_num);
     serv_seq_num = recv.seq_num+1;
     //establish connection
     pkt_t estab_con;
     make_pkt(&start_con, false, true, false, cli_seq_num, serv_seq_num, -1, 0, NULL);
     cli_seq_num++;
     send_packet(&estab_con);
+    printf("Sending packet %d \n", estab_con.seq_num);
 
     //establishment successful
     return 1;
@@ -143,7 +146,7 @@ int main(int argc, char** argv)
     do 
     {
         client->send_packet(&file_req);
-        printf("send file req\n");
+        printf("Sending packet %d\n", file_req.seq_num);
     }
     while (!client->wait_for_packet());
 
@@ -158,11 +161,13 @@ int main(int argc, char** argv)
         //receive packet
         pkt_t r;
         client->recv_packet(&r);
+        printf("Receiving packet %d\n", r.seq_num);
         if (!check_pkt(&r) || r.ack_num != client->cli_seq_num)//wrong checksum or ack
         {
             do //resend last packet
             {
                 client->send_packet(&last);
+                printf("Sending packet %d\n", last.seq_num);
             }
             while (!client->wait_for_packet());//if timeout then resend again
             continue;                          //if not timeout restart the while loop
@@ -227,6 +232,7 @@ int main(int argc, char** argv)
         do 
         {
             client->send_packet(&s);
+            printf("Sending packet %d\n", s.seq_num);
         }
         while (!client->wait_for_packet());
         //keep track of last packet
@@ -238,10 +244,12 @@ int main(int argc, char** argv)
     while (1)
     {
         client->send_packet(&fin);
+        printf("Sending packet %d FIN\n", fin.seq_num);
         if (client->wait_for_packet())
         {
             pkt_t r;
             client->recv_packet(&r);
+            printf("Receiving packet %d\n", r.seq_num);
             if (r.FIN)
                 return 1;
             else
