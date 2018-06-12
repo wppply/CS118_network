@@ -58,20 +58,24 @@ short Server::cal_seq_num(int add_val, short seq_num)
 void Server::send_packet(pkt_t *packet)
 {
     int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, sizeof(cli_addr));
-    printf("send packet\n");
+    printf("");
+    // printf("send packet\n");
     if (sendlen == -1)
         error("Error: fail to send package");
 }
 
 void Server::recv_packet(pkt_t *packet)
 {
-    socklen_t len;
-    printf("To receive packet\n");
-    int recvlen = recvfrom(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &len);
-    printf("receive packet\n");
+    // socklen_t len;
+    int recvlen = recvfrom(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &clilen);
+    // printf("receive packet\n");
     if (recvlen == -1)
         error("Error: fail to receive package");
 }
+
+
+
+
 
 void Server::setup_server() 
 {
@@ -80,9 +84,6 @@ void Server::setup_server()
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
-
-    // option to prevent ocuppied socket
-    // int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
 
     memset((char *) &serv_addr, 0, sizeof(serv_addr));
     memset((char *) &cli_addr, 0, sizeof(cli_addr));
@@ -94,8 +95,6 @@ void Server::setup_server()
 
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
         error("ERROR on binding");
-
-    // clilen = sizeof(cli_addr);
 
     //setup poll and timeout
     fds[0].fd = sockfd;
@@ -119,12 +118,9 @@ void Server::hand_shake()
 
     // receiving request from server
     pkt_t recv_req;
-    socklen_t len;
     // first SYN
-    printf("waiting for SYN\n");
-
     recv_packet(&recv_req);
-    printf("receive first syn, len: %d, sizeofaddr: %lu\n", len, sizeof(cli_addr));
+    printf("1st syn received: Seq%d ACK%d \n",recv_req.seq_num, recv_req.ack_num);
 
 
     cli_seq_num = recv_req.seq_num;
@@ -137,10 +133,13 @@ void Server::hand_shake()
         cli_seq_num = cal_seq_num(1,cli_seq_num);
         make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);//need to change
         send_packet(&syn_ack);
+        printf("1st syn sent: Seq%d ACK%d \n",syn_ack.seq_num, syn_ack.ack_num);
         serv_seq_num = cal_seq_num(1,serv_seq_num);
+
+
         //receive ack
-        // pkt_t recv_ack;
         recv_packet(&syn_ack);
+        printf("2rd received syn: Seq%d ACK%d \n",syn_ack.seq_num, syn_ack.ack_num);
         if (syn_ack.ack_num == serv_seq_num){
             connection = true;
             printf("server: waiting request from client \n");
@@ -285,11 +284,13 @@ int main(int argc, char *argv[])
     printf("server starting to work\n");
     
     
-    while(1) 
-    {   
+
+    
+
+    while (1){
+
         printf("waiting for hand_shake\n");
         server->hand_shake();
-        printf("hand_shake finished\n");
 
 
         pkt_t recv_pkt;
@@ -300,6 +301,11 @@ int main(int argc, char *argv[])
             if(recv_pkt.file_status == 3)
                 server->cli_seq_num = server->cal_seq_num(recv_pkt.data_size, server->cli_seq_num);
                 server->send_file(&recv_pkt);
+        }
+        else
+        {
+            printf("failed to hand_shake\n");
+            exit(0);
         }
 
     }
