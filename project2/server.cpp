@@ -269,7 +269,7 @@ void Server::send_file(pkt_t *recv_pkt)
                 // serv_seq_num = cal_seq_num(MAX_DATASIZE, serv_seq_num);
                 pkt_cur_seq++;
             }
-            else if (ack_pkt.FIN && ack_pkt.ack_num.seq_num == cal_seq_num(1,cli_seq_num)) // waiting not 
+            else if (ack_pkt.FIN && ack_pkt.seq_num == cal_seq_num(1,cli_seq_num)) // waiting not 
             {   
                 cli_seq_num = cal_seq_num(1,cli_seq_num);
                 serv_seq_num = ack_pkt.ack_num;
