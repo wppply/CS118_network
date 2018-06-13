@@ -292,9 +292,6 @@ int main(int argc, char *argv[])
     server->setup_server();
     printf("server starting to work\n");
     
-    
-
-    
 
     while (1){
 
