@@ -34,7 +34,7 @@ class Server
 		int sockfd, newsockfd, portno;
 		socklen_t clilen;
 		struct sockaddr_in serv_addr, cli_addr;
-		
+		char* data_buffer;
         struct pollfd fds[1];
 };
 
@@ -43,6 +43,10 @@ Server::Server(int port_number)
 	portno = port_number;
 	serv_seq_num = 0;
 	connection = false;
+}
+Server::~Server()
+{
+    free(data_buffer);
 }
 
 short Server::cal_seq_num(int add_val, short seq_num)
@@ -99,6 +103,9 @@ void Server::setup_server()
     //setup poll and timeout
     fds[0].fd = sockfd;
     fds[0].events = POLLIN;
+
+    //set up data buffer
+    data_buffer = (char *) calloc(MAX_DATASIZE, sizeof(char));
 }
 
 bool Server::wait_for_packet()
@@ -175,7 +182,7 @@ void Server::send_fin(pkt_t *data_pkt){
 void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *file, int file_size)
 {   
     int status;
-    char* data_buffer;
+
     // figure out data_size
     if (pkt_next_seq == num_packet) 
     {
@@ -185,10 +192,10 @@ void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *f
         data_pkt->data_size = MAX_DATASIZE;
         status = 1;
     }
-
-    fseek(file, (pkt_next_seq - 1) * MAX_DATASIZE, SEEK_SET);
+    
+    fseek(file, (pkt_next_seq) * MAX_DATASIZE, SEEK_SET);//-1 
     fread(data_buffer, sizeof(char), data_pkt->data_size, file);
-
+    printf("%lu byte data has been filled into packet\n", sizeof(*data_buffer) );
     // maybe need to minus 1 here
     make_pkt(data_pkt, false, true, false, serv_seq_num, cal_seq_num(1,cli_seq_num), status, data_pkt->data_size, data_buffer);
 
@@ -234,8 +241,7 @@ void Server::send_file(pkt_t *recv_pkt)
 
             fill_pkt(&data_pkt,pkt_next_seq,num_packet,file,file_size); 
             send_packet(&data_pkt);
-            printf("sent %d bytes, SEQ: %d , ACK: %d \n", data_pkt.data_size, data_pkt.seq_num, data_pkt.ack_num);
-
+            printf("sent %d bytes, pak_num: %d, SEQ: %d , ACK: %d \n", data_pkt.data_size, pkt_next_seq, data_pkt.seq_num, data_pkt.ack_num);
             pkt_next_seq++;
 
         }
@@ -245,6 +251,7 @@ void Server::send_file(pkt_t *recv_pkt)
         {
             recv_packet(&ack_pkt);
             if(ack_pkt.ACK && ack_pkt.ack_num == cal_seq_num(pkt_cur_seq * MAX_DATASIZE, serv_seq_num)) {
+
                 printf("ACK: %d received, , currentSeq %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
                 // cli_seq_num = cal_seq_num(ack,ack_pkt.ack_num)  ack_pkt.seq_num ;
                 // serv_seq_num = cal_seq_num(MAX_DATASIZE, serv_seq_num);
