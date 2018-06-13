@@ -53,11 +53,13 @@ Server::~Server()
 short Server::cal_seq_num(int add_val, short seq_num)
 {
     long s = (long) add_val + (long) seq_num;
-    if (s > MAX_SEQ_NUM)
+    while (s > MAX_SEQ_NUM)
     {
         s = s - MAX_SEQ_NUM;
     }
-    return (short) s;
+    printf("s: %d\n", (short) s);
+    return (short)s;
+
 }
 
 void Server::send_packet(pkt_t *packet)
@@ -203,6 +205,7 @@ void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *f
     fread(data_buffer, sizeof(char), data_pkt->data_size, file);
     // maybe need to minus 1 here
     int seq_temp = cal_seq_num((pkt_next_seq-1) * MAX_DATASIZE,serv_seq_num);
+
     make_pkt(data_pkt, false, true, false, seq_temp, cli_seq_num, status, data_pkt->data_size, data_buffer);
 
     
@@ -247,13 +250,20 @@ void Server::send_file(pkt_t *recv_pkt)
     {
 
         int pkt_temp_seq = pkt_next_seq;//double pointers to control window
+        // int retrans_num = pkt_temp_seq - pkt_cur_seq;
 
         for(int i=0; (i < pkt_cur_seq+WINDOW_SIZE/MAX_DATASIZE - pkt_temp_seq) && pkt_next_seq<=num_packet;i++)
         {
 
             fill_pkt(&data_pkt,pkt_next_seq,num_packet,file,file_size); 
             send_packet(&data_pkt);
-            printf("sent %d bytes, pak_num: %d, SEQ: %d , ACK: %d \n", data_pkt.data_size, pkt_next_seq, data_pkt.seq_num, data_pkt.ack_num);
+            // if (retrans_num > 0)
+            // {
+            //     printf("[retransmission] sent %d bytes, pak_num: %d, SEQ: %d , ACK: %d \n", data_pkt.data_size, pkt_next_seq, data_pkt.seq_num, data_pkt.ack_num);
+            // }else{
+                printf("sent %d bytes, pak_num: %d, SEQ: %d , ACK: %d \n", data_pkt.data_size, pkt_next_seq, data_pkt.seq_num, data_pkt.ack_num);
+            //     retrans_num--;
+            
             pkt_next_seq++;
 
         }
