@@ -12,6 +12,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <poll.h>
+#include <algorithm> // for std::find
+#include <iterator>
 
 class Server
 {
@@ -269,16 +271,31 @@ void Server::send_file(pkt_t *recv_pkt)
 
         }
 
+        int matching[5];
+        for (int k; k<5; k++){
+            matching[k] = cal_seq_num((pkt_cur_seq+k) * MAX_DATASIZE, serv_seq_num);
+        }
+
         // start to check fin
         if (wait_for_packet()) //arrive on time 
         {
+            // check if the new ack num in the matching range
             recv_packet(&ack_pkt);
+            bool exist = std::find(std::begin(matching), std::end(matching), ack_pkt.ack_num) != std::end(matching);
             if(ack_pkt.ACK && ack_pkt.ack_num == cal_seq_num(pkt_cur_seq * MAX_DATASIZE, serv_seq_num)) {
 
                 printf("ACK: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
                 // cli_seq_num = cal_seq_num(ack,ack_pkt.ack_num)  ack_pkt.seq_num ;
                 // serv_seq_num = cal_seq_num(MAX_DATASIZE, serv_seq_num);
                 pkt_cur_seq++;
+            }
+            else if (ack_pkt.ACK && exist)
+            {
+                while(ack_pkt.ack_num != cal_seq_num(pkt_cur_seq * MAX_DATASIZE, serv_seq_num)){
+                    printf("ACK: %d received, currentSeq: %d\n", cal_seq_num(pkt_cur_seq * MAX_DATASIZE, serv_seq_num), ack_pkt.seq_num);
+                    pkt_cur_seq++;
+                }
+
             }
             else if (ack_pkt.FIN && ack_pkt.seq_num == cal_seq_num(1,cli_seq_num)) // waiting not 
             {   
