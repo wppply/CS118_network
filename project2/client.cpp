@@ -107,19 +107,26 @@ int Client::hand_shake()
     }
     while (!wait_for_packet());
     cli_seq_num = cal_seq_num(1, cli_seq_num);
-    //printf("cli_seq_num: %d\n", cli_seq_num);
-    //receive SYNACK message from server
-    pkt_t recv;
-    recv_packet(&recv);
-    printf("Receiving packet %d\n", recv.seq_num);
-    serv_seq_num = cal_seq_num(1, recv.seq_num);
-    //establish connection
-    pkt_t estab_con;
-    make_pkt(&estab_con, false, true, false, cli_seq_num, serv_seq_num, -1, 0, NULL);
-    send_packet(&estab_con);
+    while (1)
+    {
+        //printf("cli_seq_num: %d\n", cli_seq_num);
+        //receive SYNACK message from server
+        pkt_t recv;
+        recv_packet(&recv);
+        printf("Receiving packet %d\n", recv.seq_num);
+        serv_seq_num = cal_seq_num(1, recv.seq_num);
+        //establish connection
+        pkt_t estab_con;
+        make_pkt(&estab_con, false, true, false, cli_seq_num, serv_seq_num, -1, 0, NULL);
+        send_packet(&estab_con);
+        printf("Sending packet %d \n", estab_con.seq_num); 
+        if (!poll(fds, 1, TIME_OUT * 2))
+            break;
+        else if (fds[0].revents & POLLIN)
+            continue;
+        break;
+    }
     cli_seq_num = cal_seq_num(1, cli_seq_num);
-    printf("Sending packet %d \n", estab_con.seq_num);
-
     //establishment successful
     return 1;
 }
