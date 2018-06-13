@@ -66,18 +66,14 @@ short Server::cal_seq_num(int add_val, short seq_num)
 
 void Server::send_packet(pkt_t *packet)
 {
-    printf("clilen: %d\n", clilen);
     int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, clilen);
-    // printf("send packet\n");
     if (sendlen == -1)
         error("Error: fail to send package");
 }
 
 void Server::recv_packet(pkt_t *packet)
 {
-    // socklen_t len;
     int recvlen = recvfrom(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, &clilen);
-    // printf("receive packet\n");
     if (recvlen == -1)
         error("Error: fail to receive package");
 }
@@ -130,7 +126,7 @@ void Server::hand_shake()
     pkt_t recv_req;
     // first SYN
     recv_packet(&recv_req);
-    printf("1st syn received: Seq%d ACK%d \n",recv_req.seq_num, recv_req.ack_num);
+    // printf("1st syn received: Seq%d ACK%d \n",recv_req.seq_num, recv_req.ack_num);
 
 
     cli_seq_num = recv_req.seq_num;
@@ -143,16 +139,22 @@ void Server::hand_shake()
         cli_seq_num = cal_seq_num(1,cli_seq_num);
         make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);//need to change
 
-        
+        int count = 0;
         do
         {
             send_packet(&syn_ack);
-            printf("1st syn sent: Seq%d ACK%d \n",syn_ack.seq_num, syn_ack.ack_num);
+            if (count == 0){
+                printf("Sending %d %d SYN\n",syn_ack.seq_num, syn_ack.ack_num);
+            }else{
+                printf("Sending %d %d Retransmission SYN\n",syn_ack.seq_num, syn_ack.ack_num);
+            }
+            count++;
+            
             //receive ack
             recv_packet(&syn_ack);
             if (syn_ack.SYN)//retrans packet
             {
-                printf("1st syn received: Seq%d ACK%d \n",syn_ack.seq_num, syn_ack.ack_num);
+                printf("Receiving packet %d \n", syn_ack.ack_num);
             }else{
                 break;
             }
@@ -162,14 +164,14 @@ void Server::hand_shake()
         while (!wait_for_packet() || (syn_ack.SYN && syn_ack.ack_num == serv_seq_num));
         // update seq num
         
-        printf("2rd syn received: Seq%d ACK%d \n",syn_ack.seq_num, syn_ack.ack_num);
+        printf("Receiving packet %d \n", syn_ack.ack_num);
         serv_seq_num = cal_seq_num(1,serv_seq_num);
         // retransmission if reply is lost or timeout
         
         
         if (syn_ack.ack_num == serv_seq_num){
             connection = true;
-            printf("server: waiting request from client \n");
+            // printf("server: waiting request from client \n");
         }
         
     }
@@ -177,23 +179,42 @@ void Server::hand_shake()
 
 
 void Server::send_fin(pkt_t *data_pkt){
-    printf("1st received FIN from client\n");
+    // printf("1st received FIN from client\n");
     pkt_t fin_ack;
     //ack
     cli_seq_num = cal_seq_num(1,cli_seq_num);
-
+    int count = 0;
     do{
-        make_pkt(data_pkt, false, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);
-        send_packet(data_pkt);
-        printf("1st sent ACK FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
+        if (count == 0){
+            make_pkt(data_pkt, false, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);
+            send_packet(data_pkt);
+            // printf("1st sent ACK FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
+            printf("Sending packet %d \n",data_pkt->seq_num);
 
-        //fins
-        make_pkt(data_pkt, false, false, true, serv_seq_num, cli_seq_num, -1, 0, NULL);
-        printf("2rd sent FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
-        send_packet(data_pkt);
+            //fins
+            make_pkt(data_pkt, false, false, true, serv_seq_num, cli_seq_num, -1, 0, NULL);
+            send_packet(data_pkt);
+            // printf("2rd sent FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
+            printf("Sending packet %d FIN\n",data_pkt->seq_num);
 
-        recv_packet(&fin_ack);
+            recv_packet(&fin_ack);
+        }else{
+            make_pkt(data_pkt, false, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);
+            send_packet(data_pkt);
+            // printf("1st sent ACK FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
+            printf("Sending packet %d Retransmission\n",data_pkt->seq_num);
 
+            //fins
+            make_pkt(data_pkt, false, false, true, serv_seq_num, cli_seq_num, -1, 0, NULL);
+            send_packet(data_pkt);
+            // printf("2rd sent FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
+            printf("Sending packet %d FIN\n",data_pkt->seq_num);
+
+            recv_packet(&fin_ack);
+
+        }
+        count ++;
+        
 
     }while(!wait_for_packet() && fin_ack.ack_num != cal_seq_num(1,serv_seq_num));
 
@@ -258,15 +279,15 @@ void Server::send_file(pkt_t *recv_pkt)
     //how many packet we need to send totally
     int num_packet = ceil(file_size / float(MAX_DATASIZE));
 
-    printf("Total Number of packet going to send: %d \n", num_packet);
-
+    // printf("Total Number of packet going to send: %d \n", num_packet);
+    bool flag = false;
 
     while(connection)//(pkt_cur_seq <= num_packet )
     {
 
         int pkt_temp_seq = pkt_next_seq;//double pointers to control window
         // int retrans_num = pkt_temp_seq - pkt_cur_seq;
-
+        
         for(int i=0; (i < pkt_cur_seq+WINDOW_SIZE/MAX_DATASIZE - pkt_temp_seq) && pkt_next_seq<=num_packet;i++)
         {
 
@@ -276,12 +297,20 @@ void Server::send_file(pkt_t *recv_pkt)
             // {
             //     printf("[retransmission] sent %d bytes, pak_num: %d, SEQ: %d , ACK: %d \n", data_pkt.data_size, pkt_next_seq, data_pkt.seq_num, data_pkt.ack_num);
             // }else{
-                printf("sent %d bytes, pak_num: %d, SEQ: %d , ACK: %d \n", data_pkt.data_size, pkt_next_seq, data_pkt.seq_num, data_pkt.ack_num);
+                // printf("sent %d bytes, pak_num: %d, SEQ: %d , ACK: %d \n", data_pkt.data_size, pkt_next_seq, data_pkt.seq_num, data_pkt.ack_num);
+            if (flag){
+                printf("Sending packet %d Retransmission\n", data_pkt.seq_num);
+            }else{
+                printf("Sending packet %d \n", data_pkt.seq_num);
+            }
+            
+
             //     retrans_num--;
             
             pkt_next_seq++;
 
         }
+        flag = false;
         /*
         int matching[5];
         for (int k; k<5; k++){
@@ -293,7 +322,6 @@ void Server::send_file(pkt_t *recv_pkt)
         {
             // check if the new ack num in the matching range
             recv_packet(&ack_pkt);
-            fprintf(stderr, "pkt_cur_seq: %d, serv_seq_num: %d, ack_num: %d\n", pkt_cur_seq, serv_seq_num, ack_pkt.ack_num);
             //bool exist = std::find(std::begin(matching), std::end(matching), ack_pkt.ack_num) != std::end(matching);
             if(ack_pkt.ACK && (ack_pkt.ack_num == cal_seq_num(pkt_cur_seq * MAX_DATASIZE, serv_seq_num)
                            || ack_pkt.ack_num == cal_seq_num((pkt_cur_seq+1) * MAX_DATASIZE, serv_seq_num)
@@ -306,7 +334,8 @@ void Server::send_file(pkt_t *recv_pkt)
                 {
                     pkt_cur_seq++;
                 }
-                printf("ACK: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
+                // printf("ACK: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
+                printf("Receiving packet %d \n", ack_pkt.ack_num);
                 // cli_seq_num = cal_seq_num(ack,ack_pkt.ack_num)  ack_pkt.seq_num ;
                 // serv_seq_num = cal_seq_num(MAX_DATASIZE, serv_seq_num);
             }
@@ -314,7 +343,8 @@ void Server::send_file(pkt_t *recv_pkt)
             {   
                 cli_seq_num = cal_seq_num(1,cli_seq_num);
                 serv_seq_num = ack_pkt.ack_num;
-                printf("FIN: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
+                printf("Receiving packet %d \n", ack_pkt.ack_num);
+                // printf("FIN: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
                 send_fin(&data_pkt);
 
             }
@@ -322,13 +352,16 @@ void Server::send_file(pkt_t *recv_pkt)
             {
                 printf("FAIL: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
                 pkt_next_seq = pkt_cur_seq;
+                flag = true;
             }
             
 
         }else{ // timeout
 
-            printf("TIMEOUT: %d received, currentSeq: %d\n", cal_seq_num((pkt_cur_seq-1) * MAX_DATASIZE,serv_seq_num), ack_pkt.seq_num);
+            // printf("TIMEOUT: %d received, currentSeq: %d\n", cal_seq_num((pkt_cur_seq-1) * MAX_DATASIZE,serv_seq_num), ack_pkt.seq_num);
+            printf("Receiving packet %d \n", ack_pkt.ack_num);
             pkt_next_seq = pkt_cur_seq;
+            flag = true;
 
         }
     }
@@ -352,19 +385,19 @@ int main(int argc, char *argv[])
     Server *server = new Server(portno);
     
     server->setup_server();
-    printf("server starting to work\n");
+    // printf("server starting to work\n");
     
 
     while (1){
 
-        printf("waiting for hand_shake\n");
+        // printf("waiting for hand_shake\n");
         server->hand_shake();
 
 
         pkt_t recv_pkt;
         if (server->connection)
         {
-            printf("wating for request\n");
+            // printf("wating for request\n");
             server->recv_packet(&recv_pkt);
             if(recv_pkt.file_status == 3)
                 server->cli_seq_num = server->cal_seq_num(recv_pkt.data_size, server->cli_seq_num);
@@ -373,7 +406,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            printf("failed to hand_shake\n");
+            // printf("failed to hand_shake\n");
             exit(0);
         }
 
