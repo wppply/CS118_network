@@ -142,19 +142,31 @@ void Server::hand_shake()
         pkt_t syn_ack; 
         cli_seq_num = cal_seq_num(1,cli_seq_num);
         make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);//need to change
-        // retransmission if reply is lost or timeout
+
+        
         do
         {
             send_packet(&syn_ack);
             printf("1st syn sent: Seq%d ACK%d \n",syn_ack.seq_num, syn_ack.ack_num);
-        }
-        while (!wait_for_packet());
-        // update seq num
-        serv_seq_num = cal_seq_num(1,serv_seq_num);
+            //receive ack
+            recv_packet(&syn_ack);
+            if (syn_ack.SYN)//retrans packet
+            {
+                printf("1st syn received: Seq%d ACK%d \n",syn_ack.seq_num, syn_ack.ack_num);
+            }else{
+                break;
+            }
 
-        //receive ack
-        recv_packet(&syn_ack);
-        printf("2rd received syn: Seq%d ACK%d \n",syn_ack.seq_num, syn_ack.ack_num);
+            
+        }
+        while (!wait_for_packet() || (syn_ack.SYN && syn_ack.ack_num == serv_seq_num));
+        // update seq num
+        
+        printf("2rd syn received: Seq%d ACK%d \n",syn_ack.seq_num, syn_ack.ack_num);
+        serv_seq_num = cal_seq_num(1,serv_seq_num);
+        // retransmission if reply is lost or timeout
+        
+        
         if (syn_ack.ack_num == serv_seq_num){
             connection = true;
             printf("server: waiting request from client \n");
