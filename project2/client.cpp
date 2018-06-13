@@ -46,7 +46,7 @@ Client::Client(char *host_name, int port_number)
 short Client::cal_seq_num(int add_val, short seq_num)
 {
     long s = (long) add_val + (long) seq_num;
-    if (s > MAX_SEQ_NUM)
+    while (s > MAX_SEQ_NUM)
     {
         s = s - MAX_SEQ_NUM;
     }
