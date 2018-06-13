@@ -193,11 +193,13 @@ void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *f
         status = 1;
     }
     
-    fseek(file, (pkt_next_seq) * MAX_DATASIZE, SEEK_SET);//-1 
+    fseek(file, (pkt_next_seq-1) * MAX_DATASIZE, SEEK_SET);//-1 
     fread(data_buffer, sizeof(char), data_pkt->data_size, file);
     printf("%lu byte data has been filled into packet\n", sizeof(*data_buffer) );
+
     // maybe need to minus 1 here
-    make_pkt(data_pkt, false, true, false, serv_seq_num, cal_seq_num(1,cli_seq_num), status, data_pkt->data_size, data_buffer);
+    int seq_temp = cal_seq_num((pkt_next_seq-1) * MAX_DATASIZE,serv_seq_num);
+    make_pkt(data_pkt, false, true, false, seq_temp, cal_seq_num(1,cli_seq_num), status, data_pkt->data_size, data_buffer);
 
     
 }
@@ -247,7 +249,7 @@ void Server::send_file(pkt_t *recv_pkt)
         }
 
         // start to check fin
-        if (!wait_for_packet()) // if packet is arriving within time
+        if (wait_for_packet())
         {
             recv_packet(&ack_pkt);
             if(ack_pkt.ACK && ack_pkt.ack_num == cal_seq_num(pkt_cur_seq * MAX_DATASIZE, serv_seq_num)) {
