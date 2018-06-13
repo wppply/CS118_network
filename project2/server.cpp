@@ -47,6 +47,7 @@ Server::Server(int port_number)
 Server::~Server()
 {
     free(data_buffer);
+    close(sockfd);
 }
 
 short Server::cal_seq_num(int add_val, short seq_num)
@@ -162,18 +163,19 @@ void Server::hand_shake()
 
 
 void Server::send_fin(pkt_t *data_pkt){
-    printf("Received FIN from client\n");
+    printf("1st received FIN from client\n");
     //ack
     cli_seq_num = cal_seq_num(1,cli_seq_num);
-    make_pkt(data_pkt, false, true, false, serv_seq_num, cli_seq_num, 0, 0, NULL);
+    make_pkt(data_pkt, false, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);
     send_packet(data_pkt);
+    printf("1st sent ACK FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
 
-    //fin
+    //fins
     serv_seq_num = cal_seq_num(1,serv_seq_num);
-    make_pkt(data_pkt, false, false, true, serv_seq_num, cli_seq_num, 0, 0, NULL);
+    make_pkt(data_pkt, false, false, true, serv_seq_num, cli_seq_num, -1, 0, NULL);
+    printf("2rd sent FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
     send_packet(data_pkt);
 
-    close(sockfd);
     connection = false;
 
 }
@@ -254,27 +256,27 @@ void Server::send_file(pkt_t *recv_pkt)
             recv_packet(&ack_pkt);
             if(ack_pkt.ACK && ack_pkt.ack_num == cal_seq_num(pkt_cur_seq * MAX_DATASIZE, serv_seq_num)) {
 
-                printf("ACK: %d received, , currentSeq %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
+                printf("ACK: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
                 // cli_seq_num = cal_seq_num(ack,ack_pkt.ack_num)  ack_pkt.seq_num ;
                 // serv_seq_num = cal_seq_num(MAX_DATASIZE, serv_seq_num);
                 pkt_cur_seq++;
             }
             else if (ack_pkt.FIN) // waiting not 
             {
-                printf("FIN: %d received, , currentSeq %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
+                printf("FIN: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
                 send_fin(&data_pkt);
 
             }
             else
             {
-                printf("FAIL: %d received, , currentSeq %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
+                printf("FAIL: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
                 pkt_next_seq = pkt_cur_seq;
             }
             
 
         }else{ // timeout
 
-            printf("ACK: %d received, , currentSeq %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
+            printf("ACK: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
             pkt_next_seq = pkt_cur_seq;
 
         }
@@ -324,6 +326,8 @@ int main(int argc, char *argv[])
         }
 
     }
+
+
 
     return 0;
 
