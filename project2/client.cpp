@@ -159,7 +159,7 @@ int main(int argc, char** argv)
     do 
     {
         client->send_packet(&file_req);
-        printf("Sending packet %d\n", file_req.seq_num);
+        printf("Sending packet %d, ACK: %d\n", file_req.seq_num, file_req.ack_num);
     }
     while (!client->wait_for_packet());
 
