@@ -207,6 +207,7 @@ int main(int argc, char** argv)
             if (r.seq_num == client->serv_seq_num) //correct packet order
             {
                 fwrite(r.data, sizeof(char), r.data_size, fp); // write to file
+                client->serv_seq_num = client->cal_seq_num(r.data_size, client->serv_seq_num);
                 if (r.file_status == 0)              //if eof then close file and set fin
                 {
                     fclose(fp);
@@ -214,7 +215,6 @@ int main(int argc, char** argv)
                 }
                 else                                //if there are more data then make packet
                 {
-                    client->serv_seq_num = client->cal_seq_num(r.data_size, client->serv_seq_num);
                     make_pkt(&s, false, true, false, client->cli_seq_num, client->serv_seq_num, -1, 0, NULL);
                 }
             }
@@ -253,21 +253,37 @@ int main(int argc, char** argv)
     }
     //start fin
     pkt_t fin;
+    client->cli_seq_num = Client->cal_seq_num(1, cli_seq_num);
     make_pkt(&fin, false, false, true, client->cli_seq_num, client->serv_seq_num, -1, 0, NULL);
+    int ret = 0;
     while (1)
     {
         client->send_packet(&fin);
         printf("Sending packet %d FIN\n", fin.seq_num);
-        if (client->wait_for_packet())
+        while (client->wait_for_packet())
         {
             pkt_t r;
             client->recv_packet(&r);
-            printf("Receiving packet %d\n", r.seq_num);
-            if (r.FIN)
-                return 1;
+            if (!r.FIN && r.ack_num == client->cal_seq_num(1, client->cli_seq_num))
+            {
+                printf("Receiving packet %d\n", r.seq_num);
+                continue;
+            }
+            else if (r.FIN && r.seq_num == client->serv_seq_num)
+            {
+                printf("Receiving packet %d FIN\n", r.seq_num);
+                pkt_t s;
+                make_pkt(&s, false, true, false, -1, client->cal_seq_num(1, client->serv_seq_num), -1, 0 , NULL);
+                client->send_packet(&s);
+                printf("Sending packet %d\n", s.seq_num);
+                ret = 1;
+                break;
+            }
             else
                 continue;
         }     
+        if (ret)
+            break;
     }
 
 
