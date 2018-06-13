@@ -159,7 +159,7 @@ int main(int argc, char** argv)
     do 
     {
         client->send_packet(&file_req);
-        printf("Sending packet %d, ACK: %d\n", file_req.seq_num, file_req.ack_num);
+        printf("Sending packet %d\n", file_req.seq_num);
     }
     while (!client->wait_for_packet());
 
@@ -174,8 +174,8 @@ int main(int argc, char** argv)
         //receive packet
         pkt_t r;
         client->recv_packet(&r);
-        //printf("Receiving packet %d\n", r.seq_num);
-        fprintf(stderr, "ack_num: %d, seq_num: %d, data_size: %d\n", r.ack_num, r.seq_num, r.data_size);
+        printf("Receiving packet %d\n", r.seq_num);
+        //fprintf(stderr, "ack_num: %d, seq_num: %d, data_size: %d\n", r.ack_num, r.seq_num, r.data_size);
         if (!check_pkt(&r) || r.ack_num != client->cli_seq_num)//wrong checksum or ack
         {
             do //resend last packet
