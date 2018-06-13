@@ -161,17 +161,24 @@ void Server::hand_shake()
 
 void Server::send_fin(pkt_t *data_pkt){
     printf("1st received FIN from client\n");
+    pkt_t fin_ack;
     //ack
     cli_seq_num = cal_seq_num(1,cli_seq_num);
-    make_pkt(data_pkt, false, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);
-    send_packet(data_pkt);
-    printf("1st sent ACK FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
 
-    //fins
-    serv_seq_num = cal_seq_num(1,serv_seq_num);
-    make_pkt(data_pkt, false, false, true, serv_seq_num, cli_seq_num, -1, 0, NULL);
-    printf("2rd sent FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
-    send_packet(data_pkt);
+    do{
+        make_pkt(data_pkt, false, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);
+        send_packet(data_pkt);
+        printf("1st sent ACK FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
+
+        //fins
+        make_pkt(data_pkt, false, false, true, serv_seq_num, cli_seq_num, -1, 0, NULL);
+        printf("2rd sent FIN: Seq%d ACK%d \n",data_pkt->seq_num, data_pkt->ack_num);
+        send_packet(data_pkt);
+
+        recv_packet(&fin_ack);
+
+
+    }while(!wait_for_packet() && fin_ack.ack_num != cal_seq_num(1,serv_seq_num));
 
     connection = false;
 
@@ -196,7 +203,7 @@ void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *f
     fread(data_buffer, sizeof(char), data_pkt->data_size, file);
     // maybe need to minus 1 here
     int seq_temp = cal_seq_num((pkt_next_seq-1) * MAX_DATASIZE,serv_seq_num);
-    make_pkt(data_pkt, false, true, false, seq_temp, cal_seq_num(1,cli_seq_num), status, data_pkt->data_size, data_buffer);
+    make_pkt(data_pkt, false, true, false, seq_temp, cli_seq_num, status, data_pkt->data_size, data_buffer);
 
     
 }
@@ -209,6 +216,9 @@ void Server::send_file(pkt_t *recv_pkt)
     int pkt_cur_seq = 1;
     int pkt_next_seq = 1;
     char *file_name = recv_pkt->data;
+
+    // update cli_seq_num before the whole process
+    cli_seq_num = cal_seq_num(1,cli_seq_num);
     
 
     FILE *file = fopen(file_name, "rb");
@@ -216,10 +226,11 @@ void Server::send_file(pkt_t *recv_pkt)
     {
         error("failed to open file. file not exist");
         // no file, try to fin the connection
-        make_pkt(&data_pkt, false, false, true, serv_seq_num, cal_seq_num(1,recv_pkt->seq_num), 2, 0, NULL);
+        make_pkt(&data_pkt, false, false, true, serv_seq_num, cli_seq_num, 2, 0, NULL);
         send_packet(&data_pkt);
 
     }
+
 
     
     // find how long the file is
@@ -248,7 +259,7 @@ void Server::send_file(pkt_t *recv_pkt)
         }
 
         // start to check fin
-        if (wait_for_packet())
+        if (wait_for_packet()) //arrive on time 
         {
             recv_packet(&ack_pkt);
             if(ack_pkt.ACK && ack_pkt.ack_num == cal_seq_num(pkt_cur_seq * MAX_DATASIZE, serv_seq_num)) {
@@ -258,8 +269,10 @@ void Server::send_file(pkt_t *recv_pkt)
                 // serv_seq_num = cal_seq_num(MAX_DATASIZE, serv_seq_num);
                 pkt_cur_seq++;
             }
-            else if (ack_pkt.FIN) // waiting not 
-            {
+            else if (ack_pkt.FIN && ack_pkt.ack_num.seq_num == cal_seq_num(1,cli_seq_num)) // waiting not 
+            {   
+                cli_seq_num = cal_seq_num(1,cli_seq_num);
+                serv_seq_num = ack_pkt.ack_num;
                 printf("FIN: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
                 send_fin(&data_pkt);
 
@@ -314,6 +327,7 @@ int main(int argc, char *argv[])
             server->recv_packet(&recv_pkt);
             if(recv_pkt.file_status == 3)
                 server->cli_seq_num = server->cal_seq_num(recv_pkt.data_size, server->cli_seq_num);
+
                 server->send_file(&recv_pkt);
         }
         else
