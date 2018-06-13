@@ -100,23 +100,24 @@ int Client::hand_shake()
     //send SYN=1 special message
     pkt_t start_con;
     make_pkt(&start_con, true, false, false, cli_seq_num, 0, -1, 0, NULL);
-    cli_seq_num++;
     do
     {
         send_packet(&start_con);
         printf("Sending packet %d SYN\n", start_con.seq_num);
     }
     while (!wait_for_packet());
+    cli_seq_num = cal_seq_num(1, cli_seq_num);
+    //printf("cli_seq_num: %d\n", cli_seq_num);
     //receive SYNACK message from server
     pkt_t recv;
     recv_packet(&recv);
     printf("Receiving packet %d\n", recv.seq_num);
-    serv_seq_num = recv.seq_num+1;
+    serv_seq_num = cal_seq_num(1, recv.seq_num);
     //establish connection
     pkt_t estab_con;
-    make_pkt(&start_con, false, true, false, cli_seq_num, serv_seq_num, -1, 0, NULL);
-    cli_seq_num++;
+    make_pkt(&estab_con, false, true, false, cli_seq_num, serv_seq_num, -1, 0, NULL);
     send_packet(&estab_con);
+    cli_seq_num = cal_seq_num(1, cli_seq_num);
     printf("Sending packet %d \n", estab_con.seq_num);
 
     //establishment successful
