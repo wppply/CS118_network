@@ -132,10 +132,15 @@ void Server::hand_shake()
         pkt_t syn_ack; 
         cli_seq_num = cal_seq_num(1,cli_seq_num);
         make_pkt(&syn_ack, true, true, false, serv_seq_num, cli_seq_num, -1, 0, NULL);//need to change
-        send_packet(&syn_ack);
-        printf("1st syn sent: Seq%d ACK%d \n",syn_ack.seq_num, syn_ack.ack_num);
+        // retransmission if reply is lost or timeout
+        do
+        {
+            send_packet(&syn_ack);
+            printf("1st syn sent: Seq%d ACK%d \n",syn_ack.seq_num, syn_ack.ack_num);
+        }
+        while (!wait_for_packet());
+        // update seq num
         serv_seq_num = cal_seq_num(1,serv_seq_num);
-
 
         //receive ack
         recv_packet(&syn_ack);
@@ -170,6 +175,7 @@ void Server::send_fin(pkt_t *data_pkt){
 void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *file, int file_size)
 {   
     int status;
+    char* data_buffer;
     // figure out data_size
     if (pkt_next_seq == num_packet) 
     {
@@ -180,11 +186,13 @@ void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *f
         status = 1;
     }
 
-    // maybe need to minus 1 here
-    make_pkt(data_pkt, false, false, false, serv_seq_num, cal_seq_num(1,cli_seq_num), status, data_pkt->data_size, NULL);
-
     fseek(file, (pkt_next_seq - 1) * MAX_DATASIZE, SEEK_SET);
-    fread(data_pkt->data, sizeof(char), data_pkt->data_size, file);
+    fread(data_buffer, sizeof(char), data_pkt->data_size, file);
+
+    // maybe need to minus 1 here
+    make_pkt(data_pkt, false, true, false, serv_seq_num, cal_seq_num(1,cli_seq_num), status, data_pkt->data_size, data_buffer);
+
+    
 }
 
 
@@ -201,6 +209,7 @@ void Server::send_file(pkt_t *recv_pkt)
     if (file == NULL) 
     {
         error("failed to open file. file not exist");
+        // no file, try to fin the connection
         make_pkt(&data_pkt, false, false, true, serv_seq_num, cal_seq_num(1,recv_pkt->seq_num), 2, 0, NULL);
         send_packet(&data_pkt);
 
@@ -223,7 +232,7 @@ void Server::send_file(pkt_t *recv_pkt)
         for(int i=0; (i < pkt_cur_seq+WINDOW_SIZE/MAX_DATASIZE - pkt_temp_seq) && pkt_next_seq<=num_packet;i++)
         {
 
-            fill_pkt(&data_pkt,pkt_next_seq,num_packet,file,file_size); printf("1\n");
+            fill_pkt(&data_pkt,pkt_next_seq,num_packet,file,file_size); 
             send_packet(&data_pkt);
             printf("sent %d bytes, SEQ: %d , ACK: %d \n", data_pkt.data_size, data_pkt.seq_num, data_pkt.ack_num);
 
