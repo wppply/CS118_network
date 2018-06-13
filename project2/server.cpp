@@ -63,7 +63,6 @@ short Server::cal_seq_num(int add_val, short seq_num)
 void Server::send_packet(pkt_t *packet)
 {
     int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, sizeof(cli_addr));
-    printf("");
     // printf("send packet\n");
     if (sendlen == -1)
         error("Error: fail to send package");
@@ -77,8 +76,6 @@ void Server::recv_packet(pkt_t *packet)
     if (recvlen == -1)
         error("Error: fail to receive package");
 }
-
-
 
 
 
@@ -195,10 +192,8 @@ void Server::fill_pkt(pkt_t *data_pkt, int pkt_next_seq, int num_packet, FILE *f
         status = 1;
     }
     
-    fseek(file, (pkt_next_seq-1) * MAX_DATASIZE, SEEK_SET);//-1 
+    // fseek(file, (pkt_next_seq-1) * MAX_DATASIZE, SEEK_SET);//-1 
     fread(data_buffer, sizeof(char), data_pkt->data_size, file);
-    printf("%lu byte data has been filled into packet\n", sizeof(*data_buffer) );
-
     // maybe need to minus 1 here
     int seq_temp = cal_seq_num((pkt_next_seq-1) * MAX_DATASIZE,serv_seq_num);
     make_pkt(data_pkt, false, true, false, seq_temp, cal_seq_num(1,cli_seq_num), status, data_pkt->data_size, data_buffer);
@@ -232,7 +227,9 @@ void Server::send_file(pkt_t *recv_pkt)
     int rc = stat(file_name, &stat_buf);
     int file_size = (rc == 0) ? stat_buf.st_size : -1;
     //how many packet we need to send totally
-    int num_packet = ceil(file_size / MAX_DATASIZE);
+    int num_packet = ceil(file_size / float(MAX_DATASIZE));
+
+    printf("Total Number of packet going to send: %d \n", num_packet);
 
 
     while(connection)//(pkt_cur_seq <= num_packet )
