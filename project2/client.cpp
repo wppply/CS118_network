@@ -253,7 +253,7 @@ int main(int argc, char** argv)
     }
     //start fin
     pkt_t fin;
-    client->cli_seq_num = Client->cal_seq_num(1, cli_seq_num);
+    client->cli_seq_num = client->cal_seq_num(1, client->cli_seq_num);
     make_pkt(&fin, false, false, true, client->cli_seq_num, client->serv_seq_num, -1, 0, NULL);
     int ret = 0;
     while (1)
