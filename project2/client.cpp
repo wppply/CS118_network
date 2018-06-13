@@ -26,6 +26,7 @@ class Client
         int sockfd, portno;
         char *hostname;
         struct hostent *server;
+        socklen_t servlen;
         struct sockaddr_in serv_addr;
         struct pollfd fds[1];
 };
@@ -40,6 +41,7 @@ Client::Client(char *host_name, int port_number)
     portno = port_number;
     cli_seq_num = 0;
     server = NULL;
+    servlen = sizeof(serv_addr);
 
 }
 
@@ -55,15 +57,14 @@ short Client::cal_seq_num(int add_val, short seq_num)
 
 void Client::send_packet(pkt_t *packet)
 {
-    int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+    int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, servlen);
     if (sendlen == -1)
         error("Error: fail to send package");
 }
 
 void Client::recv_packet(pkt_t *packet)
 {
-    socklen_t len;
-    int recvlen = recvfrom(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, &len);
+    int recvlen = recvfrom(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &serv_addr, &servlen);
     if (recvlen == -1)
         error("Error: fail to receive package");
 }

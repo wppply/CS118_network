@@ -43,6 +43,7 @@ Server::Server(int port_number)
 	portno = port_number;
 	serv_seq_num = 0;
 	connection = false;
+    clilen = sizeof(cli_addr);
 }
 Server::~Server()
 {
@@ -57,14 +58,14 @@ short Server::cal_seq_num(int add_val, short seq_num)
     {
         s = s - MAX_SEQ_NUM;
     }
-    printf("s: %d\n", (short) s);
     return (short)s;
 
 }
 
 void Server::send_packet(pkt_t *packet)
 {
-    int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, sizeof(cli_addr));
+    printf("clilen: %d\n", clilen);
+    int sendlen = sendto(sockfd, (char *) packet, sizeof(pkt_t), 0, (struct sockaddr *) &cli_addr, clilen);
     // printf("send packet\n");
     if (sendlen == -1)
         error("Error: fail to send package");
