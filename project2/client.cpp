@@ -30,6 +30,10 @@ class Client
         struct pollfd fds[1];
 };
 
+Client::~Client()
+{
+    close(sockfd);
+}
 Client::Client(char *host_name, int port_number)
 {
     hostname = host_name;
@@ -170,7 +174,7 @@ int main(int argc, char** argv)
         pkt_t r;
         client->recv_packet(&r);
         //printf("Receiving packet %d\n", r.seq_num);
-        fprintf(stderr, "ack_num: %d, seq_num: %d, data_size: %d\n", r.seq_num, r.ack_num, r.data_size);
+        fprintf(stderr, "ack_num: %d, seq_num: %d, data_size: %d\n", r.ack_num, r.seq_num, r.data_size);
         if (!check_pkt(&r) || r.ack_num != client->cli_seq_num)//wrong checksum or ack
         {
             do //resend last packet
