@@ -297,7 +297,7 @@ void Server::send_file(pkt_t *recv_pkt)
 
         }else{ // timeout
 
-            printf("ACK: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
+            printf("TIMEOUT: %d received, currentSeq: %d\n", cal_seq_num((pkt_cur_seq-1) * MAX_DATASIZE,serv_seq_num), ack_pkt.seq_num);
             pkt_next_seq = pkt_cur_seq;
 
         }
