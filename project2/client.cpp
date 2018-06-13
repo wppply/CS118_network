@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <string.h>
 #include "tcp.h"
 
 
@@ -105,12 +106,20 @@ int Client::hand_shake()
     //send SYN=1 special message
     pkt_t start_con;
     make_pkt(&start_con, true, false, false, cli_seq_num, 0, -1, 0, NULL);
+    int rt = 0;
     do
     {
+        char str[32];
+        if (rt)
+            strcpy(str,"Retransmission ");
+        else
+            strcpy(str, "");
         send_packet(&start_con);
-        printf("Sending packet %d SYN\n", start_con.seq_num);
+        printf("Sending packet %d %sSYN\n", start_con.seq_num, str);
+        rt = 1;
     }
     while (!wait_for_packet());
+    rt = 0;
     cli_seq_num = cal_seq_num(1, cli_seq_num);
     while (1)
     {
@@ -124,7 +133,13 @@ int Client::hand_shake()
         pkt_t estab_con;
         make_pkt(&estab_con, false, true, false, cli_seq_num, serv_seq_num, -1, 0, NULL);
         send_packet(&estab_con);
-        printf("Sending packet %d \n", estab_con.seq_num); 
+        char str[32];
+        if (rt)
+            strcpy(str, "Retransmission ");
+        else
+            strcpy(str, "");
+        printf("Sending packet %d %s\n", estab_con.seq_num, str);
+        rt = 1;
         if (!poll(fds, 1, TIME_OUT * 2))
             break;
         else if (fds[0].revents & POLLIN)
@@ -156,10 +171,12 @@ int main(int argc, char** argv)
     client->cli_seq_num = client->cal_seq_num(filename_size, client->cli_seq_num);
     pkt_t file_req;
     make_pkt(&file_req, false, true, false, client->cli_seq_num, client->serv_seq_num, 3, filename_size, filename);
+    char str[32] = "";
     do 
     {
         client->send_packet(&file_req);
-        printf("Sending packet %d\n", file_req.seq_num);
+        printf("Sending packet %d %s\n", file_req.seq_num, str);
+        strcpy(str, "Retransmission");
     }
     while (!client->wait_for_packet());
 
@@ -171,6 +188,7 @@ int main(int argc, char** argv)
     //receive file
     while(1)
     {
+        char str[32] = "";
         //receive packet
         pkt_t r;
         client->recv_packet(&r);
@@ -181,7 +199,7 @@ int main(int argc, char** argv)
             do //resend last packet
             {
                 client->send_packet(&last);
-                printf("Sending packet %d\n", last.seq_num);
+                printf("Sending packet %d %s\n", last.seq_num, "Retransmission");
             }
             while (!client->wait_for_packet());//if timeout then resend again
             continue;                          //if not timeout restart the while loop
@@ -223,6 +241,7 @@ int main(int argc, char** argv)
             {
                 //packet keeps the last one
                 s = last;
+                strcpy(str, "Retransmission");
             }
             else //packet arrives late or duplicate
             {
@@ -234,6 +253,7 @@ int main(int argc, char** argv)
                 else // if timeout then last packet is going to be sent
                 {
                     s = last;
+                    strcpy(str, "Retransmission");
                 }
             }
         }
@@ -246,7 +266,7 @@ int main(int argc, char** argv)
         do 
         {
             client->send_packet(&s);
-            printf("Sending packet %d\n", s.seq_num);
+            printf("Sending packet %d %s\n", s.seq_num, str);
         }
         while (!client->wait_for_packet());
         //keep track of last packet
@@ -257,10 +277,12 @@ int main(int argc, char** argv)
     client->cli_seq_num = client->cal_seq_num(1, client->cli_seq_num);
     make_pkt(&fin, false, false, true, client->cli_seq_num, client->serv_seq_num, -1, 0, NULL);
     int ret = 0;
+    strcpy(str, "");
     while (1)
     {
         client->send_packet(&fin);
-        printf("Sending packet %d FIN\n", fin.seq_num);
+        printf("Sending packet %d %sFIN\n", fin.seq_num, str);
+        strcpy(str, "Retransmission ");
         while (client->wait_for_packet())
         {
             pkt_t r;
