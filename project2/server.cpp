@@ -273,6 +273,7 @@ void Server::send_file(pkt_t *recv_pkt)
         if (wait_for_packet()) //arrive on time 
         {
             recv_packet(&ack_pkt);
+            fprintf(stderr, "pkt_cur_seq: %d, serv_seq_num: %d, ack_num: %d\n", pkt_cur_seq, serv_seq_num, ack_pkt.ack_num);
             if(ack_pkt.ACK && ack_pkt.ack_num == cal_seq_num(pkt_cur_seq * MAX_DATASIZE, serv_seq_num)) {
 
                 printf("ACK: %d received, currentSeq: %d\n", ack_pkt.ack_num, ack_pkt.seq_num);
